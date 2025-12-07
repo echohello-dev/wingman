@@ -289,4 +289,4 @@ By contributing, you agree that your contributions will be licensed under the MI
 
 ## Thank You!
 
-Your contributions mise run Wingman better for everyone. Thank you for taking the time to contribute! 🙏
+Your contributions make Wingman better for everyone. Thank you for taking the time to contribute! 🙏
