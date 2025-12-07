@@ -10,7 +10,7 @@ An AI-powered Slack support assistant with RAG (Retrieval Augmented Generation) 
 - **💾 Vector Storage**: ChromaDB for efficient semantic search
 - **🗄️ PostgreSQL Database**: Persistent storage for messages and documents
 - **📊 Next.js Dashboard**: Modern TypeScript dashboard for managing the assistant
-- **🐳 Docker Ready**: Complete docker-compose setup for local development
+- **🐳 Docker Ready**: Complete docker compose setup for local development
 
 ## 🏗️ Architecture
 
@@ -35,7 +35,7 @@ wingman/
 ├── docs/              # Documentation
 │   ├── SETUP.md
 │   └── SLACK_AUTH.md
-├── docker-compose.yml
+├── docker compose.yml
 └── .env.example
 ```
 
@@ -72,7 +72,7 @@ See [SLACK_AUTH.md](docs/SLACK_AUTH.md) for detailed Slack setup instructions.
 ### 3. Start Services
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 This will start:
@@ -86,11 +86,11 @@ This will start:
 
 ```bash
 # Check service health
-docker-compose ps
+docker compose ps
 
 # View logs
-docker-compose logs -f backend
-docker-compose logs -f bot
+docker compose logs -f backend
+docker compose logs -f bot
 ```
 
 Visit http://localhost:3000 to access the dashboard.
@@ -141,7 +141,7 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
 # Start PostgreSQL and Chroma separately or use Docker for them
-docker-compose up -d postgres chroma
+docker compose up -d postgres chroma
 
 # Run backend
 python -m uvicorn app.main:app --reload

@@ -57,7 +57,7 @@ cp .env.example .env
 ## Step 4: Start Wingman
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 This starts:
@@ -91,29 +91,29 @@ curl -X POST http://localhost:8000/api/ask \
 ### Bot not responding?
 ```bash
 # Check logs
-docker-compose logs -f bot
+docker compose logs -f bot
 
 # Verify environment
-docker-compose exec bot env | grep SLACK
+docker compose exec bot env | grep SLACK
 ```
 
 ### Can't access dashboard?
 ```bash
 # Check if services are running
-docker-compose ps
+docker compose ps
 
 # Check frontend logs
-docker-compose logs -f frontend
+docker compose logs -f frontend
 ```
 
 ### Database issues?
 ```bash
 # Restart all services
-docker-compose restart
+docker compose restart
 
 # Or recreate everything
-docker-compose down -v
-docker-compose up -d
+docker compose down -v
+docker compose up -d
 ```
 
 ## What's Next?
@@ -142,22 +142,22 @@ docker-compose up -d
 
 ```bash
 # View all logs
-docker-compose logs -f
+docker compose logs -f
 
 # Stop everything
-docker-compose down
+docker compose down
 
 # Restart a service
-docker-compose restart backend
+docker compose restart backend
 
 # Access database
-docker-compose exec postgres psql -U wingman -d wingman
+docker compose exec postgres psql -U wingman -d wingman
 
 # Run backend tests
 cd backend && pytest
 
 # Update dependencies
-docker-compose build
+docker compose build
 ```
 
 ## Getting Help

@@ -5,10 +5,8 @@ services:
   postgres:
     image: postgres:16-alpine
     container_name: wingman-postgres
-    environment:
-      POSTGRES_DB: wingman
-      POSTGRES_USER: wingman
-      POSTGRES_PASSWORD: wingman
+    env_file:
+      - .env.postgres
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -27,8 +25,8 @@ services:
     container_name: wingman-chroma
     volumes:
       - chroma_data:/chroma/chroma
-    environment:
-      - IS_PERSISTENT=TRUE
+    env_file:
+      - .env.chroma
     ports:
       - "8001:8000"
     healthcheck:
@@ -45,31 +43,9 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: wingman-backend
-    environment:
-      # Application
-      DEBUG: "false"
-      HOST: "0.0.0.0"
-      PORT: "8000"
-      
-      # Slack (load from .env)
-      SLACK_BOT_TOKEN: ${SLACK_BOT_TOKEN}
-      SLACK_APP_TOKEN: ${SLACK_APP_TOKEN}
-      SLACK_SIGNING_SECRET: ${SLACK_SIGNING_SECRET}
-      SLACK_USER_TOKEN: ${SLACK_USER_TOKEN:-}
-      SLACK_CLIENT_ID: ${SLACK_CLIENT_ID:-}
-      SLACK_CLIENT_SECRET: ${SLACK_CLIENT_SECRET:-}
-      
-      # OpenRouter/OpenAI
-      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      LLM_MODEL: ${LLM_MODEL:-openai/gpt-4-turbo-preview}
-      
-      # Database
-      DATABASE_URL: "postgresql://wingman:wingman@postgres:5432/wingman"
-      
-      # Chroma
-      CHROMA_HOST: "chroma"
-      CHROMA_PORT: "8000"
+    env_file:
+      - .env
+      - .env.backend
     ports:
       - "8000:8000"
     depends_on:
@@ -90,23 +66,9 @@ services:
       dockerfile: Dockerfile
     container_name: wingman-bot
     command: python run_bot.py
-    environment:
-      # Slack
-      SLACK_BOT_TOKEN: ${SLACK_BOT_TOKEN}
-      SLACK_APP_TOKEN: ${SLACK_APP_TOKEN}
-      SLACK_SIGNING_SECRET: ${SLACK_SIGNING_SECRET}
-      
-      # OpenRouter/OpenAI
-      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      LLM_MODEL: ${LLM_MODEL:-openai/gpt-4-turbo-preview}
-      
-      # Database
-      DATABASE_URL: "postgresql://wingman:wingman@postgres:5432/wingman"
-      
-      # Chroma
-      CHROMA_HOST: "chroma"
-      CHROMA_PORT: "8000"
+    env_file:
+      - .env
+      - .env.backend
     depends_on:
       postgres:
         condition: service_healthy
@@ -123,11 +85,9 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      args:
-        NEXT_PUBLIC_API_URL: http://localhost:8000
     container_name: wingman-frontend
-    environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8000
+    env_file:
+      - .env.frontend
     ports:
       - "3000:3000"
     depends_on:

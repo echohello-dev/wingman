@@ -164,7 +164,7 @@ See [SLACK_AUTH.md](SLACK_AUTH.md) for more details on token types.
 ### Start All Services
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 This starts:
@@ -178,12 +178,12 @@ This starts:
 
 ```bash
 # Check service status
-docker-compose ps
+docker compose ps
 
 # View logs
-docker-compose logs -f backend
-docker-compose logs -f bot
-docker-compose logs -f frontend
+docker compose logs -f backend
+docker compose logs -f bot
+docker compose logs -f frontend
 
 # Check backend health
 curl http://localhost:8000/health
@@ -192,10 +192,10 @@ curl http://localhost:8000/health
 ### Stop Services
 
 ```bash
-docker-compose down
+docker compose down
 
 # To also remove volumes (data)
-docker-compose down -v
+docker compose down -v
 ```
 
 ## Local Development
@@ -215,7 +215,7 @@ source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
 # Start dependencies (or use local Postgres/Chroma)
-docker-compose up -d postgres chroma
+docker compose up -d postgres chroma
 
 # Run backend API
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
@@ -295,7 +295,7 @@ curl http://localhost:8000/api/messages
 ### Bot Not Responding in Slack
 
 **Check:**
-1. Bot is running: `docker-compose logs bot`
+1. Bot is running: `docker compose logs bot`
 2. Socket Mode is enabled in Slack app settings
 3. `SLACK_APP_TOKEN` is set correctly (starts with `xapp-`)
 4. Bot is invited to the channel (for mentions)
@@ -310,10 +310,10 @@ curl http://localhost:8000/api/messages
 
 ```bash
 # Check PostgreSQL
-docker-compose logs postgres
+docker compose logs postgres
 
 # Connect to database
-docker-compose exec postgres psql -U wingman -d wingman
+docker compose exec postgres psql -U wingman -d wingman
 
 # Verify connection string in .env
 DATABASE_URL=postgresql://wingman:wingman@postgres:5432/wingman
@@ -323,14 +323,14 @@ DATABASE_URL=postgresql://wingman:wingman@postgres:5432/wingman
 
 ```bash
 # Check Chroma
-docker-compose logs chroma
+docker compose logs chroma
 
 # Verify Chroma is running
 curl http://localhost:8001/api/v1/heartbeat
 
 # Reset Chroma data
-docker-compose down -v
-docker-compose up -d chroma
+docker compose down -v
+docker compose up -d chroma
 ```
 
 ### LLM/API Issues
@@ -350,7 +350,7 @@ docker-compose up -d chroma
 If ports are already in use:
 
 ```bash
-# Edit docker-compose.yml to change ports
+# Edit docker compose.yml to change ports
 services:
   backend:
     ports:
@@ -364,14 +364,14 @@ services:
 
 ```bash
 # All services
-docker-compose logs -f
+docker compose logs -f
 
 # Specific service
-docker-compose logs -f backend
-docker-compose logs -f bot
-docker-compose logs -f frontend
-docker-compose logs -f postgres
-docker-compose logs -f chroma
+docker compose logs -f backend
+docker compose logs -f bot
+docker compose logs -f frontend
+docker compose logs -f postgres
+docker compose logs -f chroma
 ```
 
 ## Next Steps

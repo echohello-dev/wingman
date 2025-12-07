@@ -42,10 +42,10 @@ cd wingman
 cp .env.example .env
 
 # Install dependencies
-make install
+mise run install
 
 # Start services
-make up
+mise run up
 ```
 
 ### Backend Development
@@ -146,10 +146,10 @@ npm test -- --watch
 
 ```bash
 # Start all services
-make up
+mise run up
 
 # Run integration tests
-make test
+mise run test
 ```
 
 ## Style Guidelines
@@ -222,7 +222,7 @@ wingman/
 │   ├── lib/            # Utilities
 │   └── ...
 ├── docs/               # Documentation
-└── docker-compose.yml  # Docker setup
+└── docker compose.yml  # Docker setup
 ```
 
 ## Common Tasks
@@ -256,20 +256,20 @@ wingman/
 
 ```bash
 # View logs
-make logs-backend
+mise run logs-backend
 
 # Access container
-make shell-backend
+mise run shell-backend
 
 # Check database
-make shell-db
+mise run shell-db
 ```
 
 ### Frontend Debugging
 
 ```bash
 # View logs
-make logs-frontend
+mise run logs-frontend
 
 # Run with verbose logging
 cd frontend
@@ -289,4 +289,4 @@ By contributing, you agree that your contributions will be licensed under the MI
 
 ## Thank You!
 
-Your contributions make Wingman better for everyone. Thank you for taking the time to contribute! 🙏
+Your contributions mise run Wingman better for everyone. Thank you for taking the time to contribute! 🙏
