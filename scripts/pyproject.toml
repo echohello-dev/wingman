@@ -1,0 +1,9 @@
+[project]
+name = "wingman-utils"
+version = "0.1.0"
+description = "Wingman utilities and scripts"
+requires-python = ">=3.11"
+dependencies = ["httpx>=0.24.0"]
+
+[tool.uv]
+managed = true

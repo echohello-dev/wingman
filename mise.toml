@@ -3,6 +3,10 @@ python = "3.14"
 node = "24"
 bun = "1.3.5"
 uv = "0.9.21"
+terraform = "1.12"
+
+[env]
+_.file = ".env"
 
 [tasks.up]
 description = "Start all services"
@@ -46,11 +50,13 @@ run = "docker compose ps"
 
 [tasks.test-backend]
 description = "Run backend tests"
-run = "cd backend && uv test"
+dir = "backend"
+run = "uv test"
 
 [tasks.test-frontend]
 description = "Run frontend tests"
-run = "cd frontend && bun test"
+dir = "frontend"
+run = "bun test"
 
 [tasks.test]
 description = "Run all tests"
@@ -73,11 +79,13 @@ echo "✅ Created .env file. Please edit it with your credentials."
 
 [tasks.install-backend]
 description = "Install backend dependencies locally"
-run = "cd backend && uv sync"
+dir = "backend"
+run = "uv sync"
 
 [tasks.install-frontend]
 description = "Install frontend dependencies locally"
-run = "cd frontend && bun install"
+dir = "frontend"
+run = "bun install"
 
 [tasks.install]
 description = "Install all dependencies locally"
@@ -85,12 +93,90 @@ depends = ["install-backend", "install-frontend"]
 
 [tasks.dev-backend]
 description = "Run backend in development mode"
-run = "cd backend && uv run uvicorn app.main:app --reload"
+dir = "backend"
+run = "uv run uvicorn app.main:app --reload"
 
 [tasks.dev-frontend]
 description = "Run frontend in development mode"
-run = "cd frontend && bun run dev"
+dir = "frontend"
+run = "bun run dev"
 
 [tasks.dev-bot]
 description = "Run bot in development mode"
-run = "cd backend && python run_bot.py"
+dir = "backend"
+run = "python run_bot.py"
+
+[tasks.tf-init]
+description = "Initialize Terraform"
+dir = "terraform"
+run = "terraform init"
+
+[tasks.tf-plan]
+description = "Plan Terraform changes"
+dir = "terraform"
+run = "terraform plan"
+
+[tasks.tf-apply]
+description = "Apply Terraform changes"
+dir = "terraform"
+run = "terraform apply"
+
+[tasks.tf-destroy]
+description = "Destroy Terraform resources"
+dir = "terraform"
+run = "terraform destroy"
+
+[tasks.tf-output]
+description = "Show Terraform outputs"
+dir = "terraform"
+run = "terraform output"
+
+[tasks.tf-credentials]
+description = "Show Slack app credentials (sensitive)"
+dir = "terraform"
+run = "terraform output -json app_credentials"
+
+[tasks.tf-load-credentials]
+description = "Load Slack signing secret from Terraform into .env (Note: Bot tokens must be obtained after installing the app)"
+dir = "terraform"
+run = """
+echo "🔑 Loading Slack signing secret from Terraform..."
+echo "⚠️  Note: Bot and app tokens are only available after you install the app to your workspace."
+echo "    Visit the OAuth URL shown in tf-output to install."
+
+# Get credentials as JSON
+CREDS=$(terraform output -json app_credentials 2>/dev/null)
+
+if [ -z "$CREDS" ]; then
+  echo "❌ No credentials found. Run 'mise run tf-apply' first."
+  exit 1
+fi
+
+# Extract signing secret
+SIGNING_SECRET=$(echo "$CREDS" | python3 -c "import sys, json; print(json.load(sys.stdin).get('signing_secret', ''))" 2>/dev/null)
+
+# Update .env file (parent directory)
+if [ -f ../.env ]; then
+  if grep -q "^SLACK_SIGNING_SECRET=" ../.env; then
+    sed -i.bak "s|^SLACK_SIGNING_SECRET=.*|SLACK_SIGNING_SECRET=$SIGNING_SECRET|" ../.env
+  else
+    echo "SLACK_SIGNING_SECRET=$SIGNING_SECRET" >> ../.env
+  fi
+  
+  rm -f ../.env.bak
+  echo "✅ Signing secret loaded into .env"
+  echo ""
+  echo "Next steps:"
+  echo "1. Run 'mise run tf-output' to see the OAuth URL"
+  echo "2. Visit the OAuth URL to install the app"
+  echo "3. Copy the bot token (xoxb-...) and app token (xapp-...) to .env manually"
+else
+  echo "❌ .env file not found. Run 'cp .env.example .env' first."
+  exit 1
+fi
+"""
+
+[tasks.tf-sync-vars]
+description = "Sync Slack tokens from .env to Terraform Cloud workspace"
+dir = "scripts"
+run = "uv run sync_tf_vars.py"
