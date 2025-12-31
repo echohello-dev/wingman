@@ -1,108 +1,44 @@
 # Wingman
 
-AI-powered Slack support assistant with RAG capabilities. Answers questions using LangChain, OpenRouter/OpenAI, and your indexed documents.
-
-## Features
-
-- Slack integration (mentions, DMs, slash commands)
-- RAG-powered responses with LangChain
-- Document indexing and semantic search
-- ChromaDB vector store
-- PostgreSQL persistence
-- Next.js dashboard
-- Docker Compose ready
-
-## Architecture
-
-```mermaid
-graph LR
-    A["Slack User"] -->|Message| B["Slack Bot<br/>Socket Mode"]
-    C["Dashboard"] -->|API Request| D["FastAPI Backend"]
-    B -->|Process| D
-    D -->|Query| E["RAG Engine<br/>LangChain"]
-    E -->|Retrieve| F["Vector Store<br/>ChromaDB"]
-    E -->|LLM Call| G["OpenRouter/<br/>OpenAI"]
-    D -->|Store| H["PostgreSQL"]
-    D -->|Response| B
-    D -->|Response| C
-    F -->|Embeddings| H
-```
+AI-powered Slack support assistant with RAG capabilities. Answers questions using your indexed documents via LangChain and OpenRouter/OpenAI.
 
 ## Quick Start
 
-**Prerequisites**: Docker, Docker Compose, Slack workspace admin access, OpenRouter/OpenAI API key
-
 ```bash
-# Clone and configure
 git clone https://github.com/echohello-dev/wingman.git
 cd wingman
 cp .env.example .env
-
-# Edit .env with your credentials:
-# - SLACK_BOT_TOKEN (xoxb-*)
-# - SLACK_APP_TOKEN (xapp-*)
-# - SLACK_SIGNING_SECRET
-# - OPENROUTER_API_KEY or OPENAI_API_KEY
-```
-
-**Start services:**
-```bash
+# Edit .env with your Slack tokens and API keys
 docker compose up -d
 ```
 
-- Backend API: http://localhost:8000
-- Dashboard: http://localhost:3000
-- API Docs: http://localhost:8000/docs
+Access: [Backend](http://localhost:8000) • [Dashboard](http://localhost:3000) • [API Docs](http://localhost:8000/docs)
 
-**Test it:**
-- Slack: Mention `@Wingman` or DM `/wingman your question`
-- Dashboard: Navigate to http://localhost:3000
-- API: `curl -X POST http://localhost:8000/api/ask -H "Content-Type: application/json" -d '{"question": "Help!"}'`
+See [docs/setup.md](docs/setup.md) and [docs/getting-started.md](docs/getting-started.md) for detailed setup.
 
-## Documentation
+## Architecture
 
-- [setup.md](docs/setup.md) - Installation & configuration
-- [slack-auth.md](docs/slack-auth.md) - Token types & authentication
-- [getting-started.md](docs/getting-started.md) - Quick reference
+FastAPI backend with Slack bot, RAG engine (LangChain + ChromaDB), PostgreSQL storage, and Next.js dashboard. See [ADR-0001](docs/adrs/0001-technology-stack-and-rag-architecture.md) for architecture decisions.
 
 ## Development
 
-**Backend:**
-```bash
-cd backend
-python -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
-docker compose up -d postgres chroma
-uvicorn app.main:app --reload
-```
+See [contributing.md](contributing.md) for development workflow, commands, and guidelines.
 
-**Frontend:**
-```bash
-cd frontend
-npm install && npm run dev
-```
+**For AI coding agents:** [AGENTS.md](AGENTS.md) contains architecture and command reference for automated development.
 
-**Or use mise:**
-```bash
-mise run dev-backend   # Terminal 1
-mise run dev-frontend  # Terminal 2
-mise run dev-bot       # Terminal 3
-```
+## Documentation
 
-**Commands:**
-```bash
-docker compose ps              # Check services
-docker compose logs -f         # View logs
-docker compose down -v         # Stop & clean
-mise run test-backend          # Run tests
-```
+**Setup & Usage:**
+- [docs/setup.md](docs/setup.md) - Installation & configuration
+- [docs/getting-started.md](docs/getting-started.md) - Quick reference
+- [docs/slack-auth.md](docs/slack-auth.md) - Slack authentication
+- [docs/terraform.md](docs/terraform.md) - Infrastructure as code
 
-## Security
-
-- Never commit `.env` files
-- Rotate tokens regularly
-- Use environment-specific secrets
-- Review [slack-auth.md](docs/slack-auth.md) for best practices
+**Architecture Decisions:**
+- [docs/adrs/](docs/adrs/) - All ADRs
+- [ADR-0001](docs/adrs/0001-technology-stack-and-rag-architecture.md) - Tech stack & RAG
+- [ADR-0002](docs/adrs/0002-release-please-for-monorepo-versioning.md) - Versioning
+- [ADR-0003](docs/adrs/0003-terraform-slack-app-iac.md) - Terraform
 
 ## Contributing
 
