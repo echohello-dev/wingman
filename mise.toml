@@ -1,0 +1,94 @@
+[tools]
+python = "3.14"
+node = "24"
+
+[tasks.up]
+description = "Start all services"
+run = "docker compose up -d"
+
+[tasks.down]
+description = "Stop all services"
+run = "docker compose down"
+
+[tasks.logs]
+description = "View logs from all services"
+run = "docker compose logs -f"
+
+[tasks.logs-backend]
+description = "View backend logs"
+run = "docker compose logs -f backend"
+
+[tasks.logs-bot]
+description = "View bot logs"
+run = "docker compose logs -f bot"
+
+[tasks.logs-frontend]
+description = "View frontend logs"
+run = "docker compose logs -f frontend"
+
+[tasks.build]
+description = "Build all Docker images"
+run = "docker compose build"
+
+[tasks.clean]
+description = "Remove all containers and volumes"
+run = "docker compose down -v"
+
+[tasks.restart]
+description = "Restart all services"
+run = "docker compose restart"
+
+[tasks.ps]
+description = "Show running services"
+run = "docker compose ps"
+
+[tasks.test-backend]
+description = "Run backend tests"
+run = "cd backend && pytest"
+
+[tasks.test-frontend]
+description = "Run frontend tests"
+run = "cd frontend && npm test"
+
+[tasks.test]
+description = "Run all tests"
+depends = ["test-backend"]
+
+[tasks.shell-backend]
+description = "Open shell in backend container"
+run = "docker compose exec backend /bin/sh"
+
+[tasks.shell-db]
+description = "Open PostgreSQL shell"
+run = "docker compose exec postgres psql -U wingman -d wingman"
+
+[tasks.init]
+description = "Initialize project (copy .env.example to .env)"
+run = """
+cp .env.example .env
+echo "✅ Created .env file. Please edit it with your credentials."
+"""
+
+[tasks.install-backend]
+description = "Install backend dependencies locally"
+run = "cd backend && uv sync"
+
+[tasks.install-frontend]
+description = "Install frontend dependencies locally"
+run = "cd frontend && npm install"
+
+[tasks.install]
+description = "Install all dependencies locally"
+depends = ["install-backend", "install-frontend"]
+
+[tasks.dev-backend]
+description = "Run backend in development mode"
+run = "cd backend && uvicorn app.main:app --reload"
+
+[tasks.dev-frontend]
+description = "Run frontend in development mode"
+run = "cd frontend && npm run dev"
+
+[tasks.dev-bot]
+description = "Run bot in development mode"
+run = "cd backend && python run_bot.py"
