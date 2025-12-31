@@ -11,6 +11,24 @@ Complete setup guide for Wingman Slack support assistant with RAG.
 
 ## Slack App Configuration
 
+Wingman uses **Infrastructure as Code** to manage the Slack app via Terraform. This is the recommended approach.
+
+### Option A: Automated Setup with Terraform (Recommended)
+
+See [terraform.md](terraform.md) for complete setup instructions.
+
+```bash
+mise run tf-init    # Initialize Terraform
+mise run tf-plan    # Review changes
+mise run tf-apply   # Create Slack app
+```
+
+The app will be automatically created with all required scopes and configuration.
+
+### Option B: Manual Setup
+
+If you prefer to create the app manually:
+
 1. Create app at [api.slack.com/apps](https://api.slack.com/apps) → From scratch
 2. Name: "Wingman", select workspace
 3. **OAuth & Permissions** - Add scopes:
@@ -38,12 +56,16 @@ cd wingman
 cp .env.example .env
 ```
 
-### 3. Configure Environment Variables
+### 3. Configure with Terraform (Recommended)
 
-Edit `.env` with your credentials:
+Follow [terraform.md](terraform.md) to automatically create and configure your Slack app.
+
+### 4. Configure Manually (Alternative)
+
+If using manual setup, edit `.env` with your credentials:
 
 ```bash
-# Required Slack Tokens
+# Required Slack Tokens (from manual app setup)
 SLACK_BOT_TOKEN=xoxb-your-bot-token-here
 SLACK_APP_TOKEN=xapp-your-app-token-here
 SLACK_SIGNING_SECRET=your-signing-secret-here
@@ -56,8 +78,6 @@ OPENAI_API_KEY=sk-your-openai-key-here
 # Optional: Customize LLM model
 LLM_MODEL=openai/gpt-4-turbo-preview
 ```
-
-See [SLACK_AUTH.md](SLACK_AUTH.md) for more details on token types.
 
 ## Docker Deployment
 
