@@ -13,3 +13,28 @@ output "app_credentials" {
   value       = slackapp_application.wingman.credentials
   sensitive   = true
 }
+
+output "client_id" {
+  description = "Slack App Client ID"
+  value       = slackapp_application.wingman.credentials.client_id
+  sensitive   = true
+}
+
+output "client_secret" {
+  description = "Slack App Client Secret"
+  value       = slackapp_application.wingman.credentials.client_secret
+  sensitive   = true
+}
+
+output "signing_secret" {
+  description = "Slack App Signing Secret"
+  value       = slackapp_application.wingman.credentials.signing_secret
+  sensitive   = true
+}
+
+output "verification_token" {
+  description = "Slack App Verification Token"
+  value       = slackapp_application.wingman.credentials.verification_token
+  sensitive   = true
+}
+

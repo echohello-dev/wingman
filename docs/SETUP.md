@@ -58,7 +58,25 @@ cp .env.example .env
 
 ### 3. Configure with Terraform (Recommended)
 
-Follow [terraform.md](terraform.md) to automatically create and configure your Slack app.
+Follow [terraform.md](terraform.md) for complete setup:
+
+```bash
+# Initialize and create Slack app
+mise run tf-init
+mise run tf-plan
+mise run tf-apply
+
+# Install app to workspace (visit OAuth URL)
+mise run tf-output | grep oauth_authorize_url
+
+# Load credentials from Terraform
+mise run tf-load-vars
+
+# Manually add bot and app tokens after installing app to workspace
+# Edit .env and add:
+# SLACK_BOT_TOKEN=xoxb-...
+# SLACK_APP_TOKEN=xapp-...
+```
 
 ### 4. Configure Manually (Alternative)
 

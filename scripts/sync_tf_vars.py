@@ -103,7 +103,7 @@ def prompt_for_refresh_token() -> str:
 
 def update_env_file(access_token: str, refresh_token: str) -> None:
     """Update .env file with new tokens."""
-    env_path = Path(".env")
+    env_path = Path(__file__).parent.parent / ".env"
     
     if not env_path.exists():
         log_error(".env file not found")
@@ -329,7 +329,8 @@ def main() -> None:
     # Success message
     print()
     log_success("Sync complete! Tokens are now up-to-date in Terraform Cloud")
-    print("   You can now run: mise run tf-apply")
+    print("   You can now run: mise run load-tf-vars")
+    print("   Or:              mise run tf-apply")
 
 
 if __name__ == "__main__":
