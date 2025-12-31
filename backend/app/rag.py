@@ -4,9 +4,14 @@ RAG (Retrieval Augmented Generation) implementation
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
+from datetime import datetime, timedelta
 from app.config import settings
 from app.vector_store import vector_store
+from app.database import SessionLocal, ConversationHistory
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class RAGEngine:
@@ -40,26 +45,122 @@ class RAGEngine:
 Use the following context from Slack threads and documentation to answer the question.
 If you cannot find the answer in the context, say so and provide general guidance.
 
-Context:
+{conversation_history}Context:
 {context}
 
 Question: {question}
 
 Answer:""",
-            input_variables=["context", "question"]
+            input_variables=["conversation_history", "context", "question"]
         )
     
-    def generate_response(self, question: str, channel_id: str = None) -> Dict[str, Any]:
+    def get_conversation_history(self, conversation_id: str) -> str:
+        """
+        Retrieve recent conversation history
+        
+        Args:
+            conversation_id: Unique identifier for the conversation
+            
+        Returns:
+            Formatted conversation history string
+        """
+        try:
+            db = SessionLocal()
+            
+            # Calculate timeout threshold
+            timeout_threshold = datetime.utcnow() - timedelta(minutes=settings.CONVERSATION_TIMEOUT_MINUTES)
+            
+            # Retrieve recent messages in chronological order
+            history = db.query(ConversationHistory).filter(
+                ConversationHistory.conversation_id == conversation_id,
+                ConversationHistory.created_at >= timeout_threshold
+            ).order_by(
+                ConversationHistory.created_at.asc()
+            ).limit(settings.CONVERSATION_MEMORY_WINDOW).all()
+            
+            db.close()
+            
+            if not history:
+                return ""
+            
+            # Format history
+            formatted_history = "Previous conversation:\n"
+            for entry in history:
+                role_label = "User" if entry.role == "user" else "Assistant"
+                formatted_history += f"{role_label}: {entry.message}\n"
+            
+            formatted_history += "\n"
+            return formatted_history
+            
+        except Exception as e:
+            logger.error(f"Error retrieving conversation history: {e}")
+            return ""
+    
+    def _store_conversation_turn(self, conversation_id: str, user_id: str, channel_id: str, 
+                                  role: str, message: str, message_ts: Optional[str] = None):
+        """
+        Store a conversation turn in the database
+        
+        Args:
+            conversation_id: Unique identifier for the conversation
+            user_id: Slack user ID
+            channel_id: Slack channel ID
+            role: "user" or "assistant"
+            message: The message content
+            message_ts: Optional Slack timestamp
+        """
+        try:
+            db = SessionLocal()
+            
+            entry = ConversationHistory(
+                conversation_id=conversation_id,
+                user_id=user_id,
+                channel_id=channel_id,
+                role=role,
+                message=message,
+                message_ts=message_ts
+            )
+            
+            db.add(entry)
+            db.commit()
+            db.close()
+            
+        except Exception as e:
+            logger.error(f"Error storing conversation turn: {e}")
+    
+    def generate_response(self, question: str, channel_id: str = None, 
+                         conversation_id: Optional[str] = None,
+                         user_id: Optional[str] = None,
+                         message_ts: Optional[str] = None) -> Dict[str, Any]:
         """
         Generate a response using RAG
         
         Args:
             question: The user's question
             channel_id: Optional channel ID to filter context
+            conversation_id: Optional conversation ID for memory
+            user_id: Optional user ID for conversation tracking
+            message_ts: Optional Slack timestamp for the user message
             
         Returns:
             Dictionary with response and metadata
         """
+        # Get conversation history if conversation_id provided
+        conversation_history = ""
+        if conversation_id:
+            conversation_history = self.get_conversation_history(conversation_id)
+            
+            # Store user message
+            if user_id and channel_id:
+                self._store_conversation_turn(
+                    conversation_id=conversation_id,
+                    user_id=user_id,
+                    channel_id=channel_id,
+                    role="user",
+                    message=question,
+                    message_ts=message_ts
+                )
+        
         # Search for relevant context
         results = vector_store.similarity_search(question)
         
@@ -74,8 +175,22 @@ Answer:""",
         ])
         
         # Generate response
-        prompt = self.prompt_template.format(context=context, question=question)
+        prompt = self.prompt_template.format(
+            conversation_history=conversation_history,
+            context=context,
+            question=question
+        )
         response = self.llm.invoke(prompt)
+        
+        # Store assistant response
+        if conversation_id and user_id and channel_id:
+            self._store_conversation_turn(
+                conversation_id=conversation_id,
+                user_id=user_id,
+                channel_id=channel_id,
+                role="assistant",
+                message=response.content
+            )
         
         return {
             "answer": response.content,

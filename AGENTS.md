@@ -45,6 +45,6 @@ mise run shell-db       # psql into postgres
 
 ## Environment
 
-Copy `.env.example` to `.env`. Docker uses hostnames (`postgres`, `chroma`); local dev uses `localhost`.
+Copy `.env.example` to `.env` — this is the only environment file needed. Docker uses hostnames (`postgres`, `chroma`); local dev uses `localhost`.
 
 **Chroma port**: Container 8000 → host 8001

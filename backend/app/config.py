@@ -46,6 +46,10 @@ class Settings(BaseSettings):
     CHUNK_OVERLAP: int = 200
     RETRIEVAL_TOP_K: int = 5
     
+    # Conversation Memory
+    CONVERSATION_MEMORY_WINDOW: int = 10  # Number of recent messages to include
+    CONVERSATION_TIMEOUT_MINUTES: int = 30  # How long to consider a conversation active
+    
     class Config:
         env_file = ".env"
         case_sensitive = True

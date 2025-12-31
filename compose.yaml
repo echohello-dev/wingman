@@ -1,12 +1,12 @@
-version: '3.8'
-
 services:
   # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
     container_name: wingman-postgres
-    env_file:
-      - .env.postgres
+    environment:
+      POSTGRES_USER: wingman
+      POSTGRES_PASSWORD: wingman
+      POSTGRES_DB: wingman
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -25,8 +25,9 @@ services:
     container_name: wingman-chroma
     volumes:
       - chroma_data:/chroma/chroma
-    env_file:
-      - .env.chroma
+    environment:
+      ALLOW_RESET: true
+      ANONYMIZED_TELEMETRY: false
     ports:
       - "8001:8000"
     healthcheck:
@@ -45,7 +46,6 @@ services:
     container_name: wingman-backend
     env_file:
       - .env
-      - .env.backend
     ports:
       - "8000:8000"
     depends_on:
@@ -68,7 +68,6 @@ services:
     command: python run_bot.py
     env_file:
       - .env
-      - .env.backend
     depends_on:
       postgres:
         condition: service_healthy
@@ -87,7 +86,7 @@ services:
       dockerfile: Dockerfile
     container_name: wingman-frontend
     env_file:
-      - .env.frontend
+      - .env
     ports:
       - "3000:3000"
     depends_on:

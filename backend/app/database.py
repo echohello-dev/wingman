@@ -41,6 +41,20 @@ class Document(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+class ConversationHistory(Base):
+    """Model for storing conversation history"""
+    __tablename__ = "conversation_history"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    conversation_id = Column(String, index=True)  # Format: "{channel_id}:{user_id}", "dm:{user_id}", or "thread:{channel_id}:{thread_ts}"
+    user_id = Column(String, index=True)
+    channel_id = Column(String, index=True)
+    role = Column(String)  # "user" or "assistant"
+    message = Column(Text)
+    message_ts = Column(String, nullable=True)  # Slack timestamp for reference
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
 def get_db():
     """Dependency for getting database session"""
     db = SessionLocal()

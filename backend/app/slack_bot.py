@@ -44,7 +44,16 @@ class SlackBot:
                 
                 # Get channel and thread info
                 channel_id = event.get("channel")
+                user_id = event.get("user")
                 thread_ts = event.get("thread_ts") or event.get("ts")
+                message_ts = event.get("ts")
+                
+                # Generate conversation ID
+                # For thread mentions, use thread-specific ID to keep conversations separate
+                if event.get("thread_ts"):
+                    conversation_id = f"thread:{channel_id}:{thread_ts}"
+                else:
+                    conversation_id = f"{channel_id}:{user_id}"
                 
                 # If in a thread, get thread context
                 if thread_ts:
@@ -52,8 +61,14 @@ class SlackBot:
                     # Index thread for context
                     rag_engine.index_slack_thread(thread_messages, channel_id)
                 
-                # Generate response using RAG
-                response = rag_engine.generate_response(question, channel_id)
+                # Generate response using RAG with conversation memory
+                response = rag_engine.generate_response(
+                    question=question,
+                    channel_id=channel_id,
+                    conversation_id=conversation_id,
+                    user_id=user_id,
+                    message_ts=message_ts
+                )
                 
                 # Store message in database
                 self._store_message(event)
@@ -80,9 +95,21 @@ class SlackBot:
                 
                 try:
                     question = event.get("text", "")
+                    user_id = event.get("user")
+                    channel_id = event.get("channel")
+                    message_ts = event.get("ts")
                     
-                    # Generate response
-                    response = rag_engine.generate_response(question)
+                    # Generate conversation ID for DMs
+                    conversation_id = f"dm:{user_id}"
+                    
+                    # Generate response with conversation memory
+                    response = rag_engine.generate_response(
+                        question=question,
+                        channel_id=channel_id,
+                        conversation_id=conversation_id,
+                        user_id=user_id,
+                        message_ts=message_ts
+                    )
                     
                     # Store message
                     self._store_message(event)
