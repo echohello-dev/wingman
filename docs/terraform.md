@@ -60,7 +60,7 @@ SLACK_CONFIG_REFRESH_TOKEN=xoxe-1-...
 
 Mise automatically loads `.env` for all tasks via `[env]` configuration in `mise.toml`.
 
-### 3. Deploy Slack App
+#### 3. Deploy Slack App
 
 ```bash
 # Initialize Terraform (downloads provider and sets up state)
@@ -73,10 +73,45 @@ mise run tf-plan
 mise run tf-apply
 ```
 
-The Terraform output will show:
-- **App ID** (A0A71KHRFNU)
-- **OAuth authorize URL** for installation
-- **App credentials** (signing secret, client ID, etc.)
+### Option B: Local State (For Personal/Development Use)
+
+If you don't want to use Terraform Cloud, you can use local state:
+
+#### 1. Remove Terraform Cloud Backend
+
+Comment out or remove the cloud backend in `terraform/backend.tf`:
+
+```hcl
+# terraform {
+#   cloud {
+#     organization = var.tf_cloud_organization
+#     workspaces {
+#       name = var.tf_workspace
+#     }
+#   }
+# }
+```
+
+#### 2. Setup Environment Variables
+
+Add to `.env`:
+```bash
+# Slack tokens (obtained from initial app setup or token rotation)
+SLACK_CONFIG_ACCESS_TOKEN=xoxe.xoxp-1-...
+SLACK_CONFIG_REFRESH_TOKEN=xoxe-1-...
+```
+
+#### 3. Deploy Slack App
+
+```bash
+mise run tf-init
+mise run tf-plan
+mise run tf-apply
+```
+
+**Note:** With local state, the state file (`terraform.tfstate`) will be stored locally. Add it to `.gitignore` to avoid committing sensitive data.
+
+## After Deployment (Both Options)
 
 ### 4. Load Slack Credentials from Terraform
 
