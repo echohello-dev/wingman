@@ -28,17 +28,7 @@ See [contributing.md](contributing.md) for development workflow, commands, and g
 
 ## Documentation
 
-**Setup & Usage:**
-- [docs/setup.md](docs/setup.md) - Installation & configuration
-- [docs/getting-started.md](docs/getting-started.md) - Quick reference
-- [docs/slack-auth.md](docs/slack-auth.md) - Slack authentication
-- [docs/terraform.md](docs/terraform.md) - Infrastructure as code
-
-**Architecture Decisions:**
-- [docs/adrs/](docs/adrs/) - All ADRs
-- [ADR-0001](docs/adrs/0001-technology-stack-and-rag-architecture.md) - Tech stack & RAG
-- [ADR-0002](docs/adrs/0002-release-please-for-monorepo-versioning.md) - Versioning
-- [ADR-0003](docs/adrs/0003-terraform-slack-app-iac.md) - Terraform
+See [./docs](docs/) for setup guides and [./docs/adrs](docs/adrs/) for architecture decisions.
 
 ## Contributing
 
@@ -46,7 +36,7 @@ Contributions welcome! See [contributing.md](contributing.md) for guidelines.
 
 ## License
 
-MIT License
+See [LICENSE](LICENSE) for details.
 
 ## Built With
 
