@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """
 Post realistic support messages to Slack using session tokens.
+Generates conversations using OpenRouter Gemini 3 Flash if API key available,
+otherwise uses deterministic in-memory messages.
 """
 import json
 import time
@@ -16,13 +18,119 @@ XOXC_TOKEN = config['SLACK_XOXC_TOKEN']
 XOXD_TOKEN = config['SLACK_XOXD_TOKEN']
 CHANNEL = config.get('SLACK_CHANNEL_ID')
 TEAM_ID = config.get('SLACK_TEAM_ID')
+OPENROUTER_API_KEY = config.get('OPENROUTER_API_KEY')
 
 if not XOXC_TOKEN or not XOXD_TOKEN or not CHANNEL or not TEAM_ID:
     print("❌ Missing required env vars: SLACK_XOXC_TOKEN, SLACK_XOXD_TOKEN, SLACK_CHANNEL_ID, SLACK_TEAM_ID")
     import sys
     sys.exit(1)
 
-messages = [
+
+def generate_messages_with_ai():
+    """Generate realistic Slack conversations using OpenRouter Gemini 3 Flash with structured outputs."""
+    print("🤖 Generating conversations with Gemini 3 Flash (structured output)...")
+    
+    prompt = """Generate 20 realistic Slack channel messages for an engineering team support channel. 
+Messages should include:
+- Technical questions and troubleshooting
+- Status updates and announcements
+- Deployment notices
+- Deprecation warnings
+- Casual but professional tone (semi-formal)
+- Some typos and natural language variation
+- Emoji use (minimal, natural)
+- Mix of quick questions, detailed issues, and team coordination
+- Each message has 0-3 replies"""
+
+    # JSON Schema for structured output
+    schema = {
+        "type": "object",
+        "properties": {
+            "messages": {
+                "type": "array",
+                "description": "Array of Slack messages",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "text": {
+                            "type": "string",
+                            "description": "The main message text"
+                        },
+                        "replies": {
+                            "type": "array",
+                            "description": "Array of reply messages",
+                            "items": {"type": "string"}
+                        }
+                    },
+                    "required": ["text", "replies"],
+                    "additionalProperties": False
+                }
+            }
+        },
+        "required": ["messages"],
+        "additionalProperties": False
+    }
+
+    try:
+        response = httpx.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://github.com/echohello-dev/wingman"
+            },
+            json={
+                "model": "google/gemini-3-flash-preview",
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                "temperature": 0.7,
+                "max_tokens": 4000,
+                "top_p": 0.9,
+                "response_format": {
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": "slack_messages",
+                        "strict": True,
+                        "schema": schema
+                    }
+                }
+            },
+            timeout=30.0
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            content = result['choices'][0]['message']['content']
+            
+            # With structured outputs, content is already valid JSON
+            try:
+                data = json.loads(content)
+                messages = data.get('messages', [])
+                print(f"✅ Generated {len(messages)} messages from Gemini 3 Flash")
+                return messages
+            except json.JSONDecodeError as e:
+                print(f"⚠️ Failed to parse JSON response: {e}")
+                print(f"   Content: {content[:200]}")
+                return None
+        else:
+            error_body = response.text
+            print(f"⚠️ AI generation failed: {response.status_code}")
+            print(f"   Response: {error_body[:200]}")
+            return None
+    except httpx.TimeoutException:
+        print("⚠️ AI generation timed out (30s)")
+        return None
+    except Exception as e:
+        print(f"⚠️ AI generation error: {e}")
+        return None
+
+
+# Default fallback messages
+fallback_messages = [
     {
         "text": "Hey team, I'm getting a 403 on the new dashboard analytics endpoint :thinking_face: Has anyone else run into this?",
         "replies": [
@@ -157,6 +265,14 @@ messages = [
         ]
     }
 ]
+
+# Choose messages source
+if OPENROUTER_API_KEY:
+    generated = generate_messages_with_ai()
+    messages = generated if generated else fallback_messages
+else:
+    print("⏭️ No OpenRouter API key found, using deterministic messages")
+    messages = fallback_messages
 
 print(f"📤 Posting {len(messages)} realistic support messages...\n")
 
