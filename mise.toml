@@ -119,7 +119,7 @@ run = "terraform plan"
 [tasks.tf-apply]
 description = "Apply Terraform changes"
 dir = "terraform"
-run = "terraform apply"
+run = "terraform apply -auto-approve"
 
 [tasks.tf-destroy]
 description = "Destroy Terraform resources"
