@@ -5,9 +5,9 @@ Generates conversations using OpenRouter Gemini 3 Flash if API key available.
 Can optionally use GitHub context (commits, PRs, issues) to make messages more realistic.
 """
 import json
+import subprocess
 import time
 import uuid
-import subprocess
 
 import httpx
 from dotenv import dotenv_values
