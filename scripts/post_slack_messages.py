@@ -24,87 +24,136 @@ if not XOXC_TOKEN or not XOXD_TOKEN or not CHANNEL or not TEAM_ID:
 
 messages = [
     {
-        "text": ":warning: Hey team! I'm trying to set up the new customer dashboard but getting a 403 error when accessing the analytics endpoint. Has anyone seen this before?",
+        "text": "Hey team, I'm getting a 403 on the new dashboard analytics endpoint :thinking_face: Has anyone else run into this?",
         "replies": [
-            ":key: Check if you have the analytics.read permission in your API token scope",
-            ":link: Also verify the endpoint URL - it should be /api/v3/analytics not /api/analytics"
+            "Did you check if your token has the analytics.read scope?",
+            "Also, make sure the URL is /api/v3/analytics, not /api/analytics. Easy typo to make"
         ]
     },
     {
-        "text": ":clipboard: Quick question - what's our current policy on data retention for user session logs? Need this for the compliance audit.",
+        "text": "Quick question - what's our data retention policy for session logs? Need this for the compliance audit",
         "replies": [
-            ":calendar: We keep session logs for 90 days, then they're automatically archived to cold storage for 7 years per compliance requirements"
+            "90 days in hot storage, then goes to cold storage for 7 years per policy"
         ]
     },
     {
-        "text": ":bug: Getting a weird error in production:\n```\nTypeError: Cannot read property 'userId' of undefined\n  at UserService.authenticate (user-service.js:45)\n```\nThis started happening after the last deployment. Any ideas?",
+        "text": "This error just showed up in prod :bug:: \n```\nTypeError: Cannot read property 'userId' of undefined\n  at UserService.authenticate (user-service.js:45)\n```\nAnyone know what we deployed?",
         "replies": [
-            ":thinking_face: This looks like the user object is null. Did we change the auth middleware recently?",
-            ":white_check_mark: Yes, I see the issue. The JWT decode is failing silently. I'll push a fix"
+            "Did we change the auth middleware recently?",
+            "Yeah, I see it now. JWT decode is failing silently. Let me push a fix"
         ]
     },
     {
-        "text": ":books: Can someone point me to the documentation on how to configure the rate limiter for our API endpoints? I need to adjust the limits for the new payment service.",
+        "text": "Could someone send me the rate limiter config docs? Setting up limits for the payment service and need guidance",
         "replies": []
     },
     {
-        "text": ":wave: I'm onboarding a new team member - where can I find the setup guide for local development environment? Specifically looking for the Docker compose setup instructions.",
+        "text": "Onboarding new team member tomorrow - where can I find the local dev setup guide? Need the Docker compose instructions :wave:",
         "replies": [
-            ":whale: Check the README.md in the root - it has the full setup guide including Docker compose"
+            "Root README has everything including the Docker compose setup :whale:"
         ]
     },
     {
-        "text": ":credit_card: Has anyone successfully integrated the webhook system with Stripe? I'm following the docs but the signature validation keeps failing.",
+        "text": "Has anyone successfully integrated Stripe webhooks? Signature validation keeps failing and I can't figure out why",
         "replies": [
-            ":key: Make sure you're using the webhook secret from the Stripe dashboard, not the API secret",
-            ":eyes: Also check that you're reading the raw request body before parsing it as JSON"
+            "Make sure you're using the webhook secret from the dashboard, not your API secret",
+            "Also gotta read the raw request body before parsing as JSON. That's a common gotcha"
         ]
     },
     {
-        "text": ":lock: Need help understanding the authentication flow in our mobile app. Is there a sequence diagram or architecture doc somewhere?",
+        "text": "Could use some help - how does the authentication flow work on mobile? Is there a sequence diagram or docs somewhere?",
         "replies": []
     },
     {
-        "text": ":database: Question about our database migration strategy - should I create a new migration file or modify the existing one? This is for adding a new column to the users table.",
+        "text": "Quick question on database migrations: should I create a new file or modify the existing one? Adding a column to the users table",
         "replies": [
-            ":no_entry: Always create a new migration file. Never modify existing ones that have been deployed"
+            "Always create a new migration file. Never modify deployed migrations - that's how things break :no_entry:"
         ]
     },
     {
-        "text": ":hourglass_flowing_sand: Getting timeout errors on the `/api/v2/reports` endpoint when generating large reports. Current timeout is set to 30s - is there a recommended value for this?",
+        "text": "Getting timeout errors on /api/v2/reports when generating large reports. Timeout is set to 30s currently - what's the recommended value?",
         "replies": [
-            ":chart_with_upwards_trend: For report generation, we typically use 60s timeout. You can also consider making it async with a webhook callback"
+            "60s is typical for report generation. Or consider making it async with a callback if reports are heavy"
         ]
     },
     {
-        "text": ":shield: I need to update the error handling in our payment processing module. What's the best practice for handling transient failures vs permanent failures?",
+        "text": "What's the best approach for handling retries in the payment module? How do you differentiate between transient and permanent failures?",
         "replies": []
     },
     {
-        "text": ":rocket: Can someone explain the difference between our staging and pre-prod environments? Which one should I use for testing the new feature flag system?",
+        "text": "Question - staging vs pre-prod: which one should I use for feature flag testing? :rocket:",
         "replies": [
-            ":gear: Staging is for integration testing, pre-prod mirrors production config. Use pre-prod for feature flags"
+            "Staging is for integration testing. Pre-prod mirrors production config. Use pre-prod for feature flags"
         ]
     },
     {
-        "text": ":policeman: Looking for the API documentation on user permissions. I need to implement role-based access control for the new admin dashboard.",
+        "text": "Looking for documentation on user permissions. Need to implement role-based access control for the admin dashboard",
         "replies": []
     },
     {
-        "text": ":iphone: Has anyone worked with the notification service recently? I'm trying to send push notifications but they're not showing up on iOS devices.",
+        "text": "Push notifications aren't showing on iOS. Has anyone worked with the notification service recently? :iphone:",
         "replies": [
-            ":warning: Did you update the APNs certificate? It expired last month",
-            ":bulb: Oh that's probably it! Where do I find the new certificate?"
+            "When's the last time you updated the APNs certificate? Pretty sure it expired :warning:",
+            "Oh, that's probably it! Where can I find the new one? :bulb:"
         ]
     },
     {
-        "text": ":lock_with_key: Quick one - what's our standard for logging sensitive information? Should I redact credit card numbers in application logs or do we have automatic scrubbing?",
+        "text": "Security question - do we automatically redact credit card numbers in logs, or should they be manually scrubbed?",
         "replies": []
     },
     {
-        "text": ":mag: I'm seeing inconsistent results from the search API. Same query returns different results on subsequent calls. Is caching enabled and could that be the issue?",
+        "text": "Seeing inconsistent results from the search API. Same query returns different results on subsequent calls. Is Redis caching enabled?",
         "replies": [
-            ":redis: Yes, we have Redis caching with 5-minute TTL. The inconsistency might be from cache warming"
+            "Yes, Redis caching with 5-minute TTL. Could be cache warming issues :redis:"
+        ]
+    },
+    {
+        "text": ":rocket: heads up - deploying auth service v2.1 to staging in 30min. if you're testing auth stuff plz use staging-v2",
+        "replies": [
+            "thanks for the heads up! when's it going to prod?",
+            "probably friday if no issues in staging. ill ping the channel"
+        ]
+    },
+    {
+        "text": "just merged PR #487 - refactored the payment webhook handler to be more robust. plz review when u get a sec",
+        "replies": [
+            "lgtm! just left a comment on line 42",
+            "approved! ship it"
+        ]
+    },
+    {
+        "text": ":warning: ATTENTION: we're deprecating the old `/api/v1/users` endpoint next month. migrate to `/api/v2/users` asap. see docs for migration guide",
+        "replies": [
+            "how long do we have to migrate?",
+            "until feb 15. we're sending emails to all customers but best to get it done early"
+        ]
+    },
+    {
+        "text": "performance update: search endpoint now doing fuzzy matching. this may affect some queries but accuracy is way better. feedback welcome :mag:",
+        "replies": [
+            "nice! how's the perf impact?",
+            "minimal actually. redis caching handles most of it"
+        ]
+    },
+    {
+        "text": "planned maintenance: database will be down for upgrades tomorrow 2am-3am pst. notify ur customers pls",
+        "replies": [
+            "done. already sent notifications",
+            "thx. also FYI we're upgrading to postgres 15"
+        ]
+    },
+    {
+        "text": "FYI rolling out new UI theme next week. if things look weird that's expected lol. should stabilize by wed",
+        "replies": [
+            "dark mode finally??",
+            "yeah! and better mobile responsive too"
+        ]
+    },
+    {
+        "text": "quick status: api latency spiked this morning around 9am but we've sorted it now. no data loss",
+        "replies": [
+            "what caused it?",
+            "one of the load balancers got overloaded. scaled it up"
         ]
     }
 ]
