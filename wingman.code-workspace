@@ -1,0 +1,28 @@
+{
+    "folders": [
+        {
+            "name": "wingman (root)",
+            "path": "."
+        },
+        {
+            "name": "backend",
+            "path": "backend"
+        },
+        {
+            "name": "scripts",
+            "path": "scripts"
+        }
+    ],
+    "settings": {
+        "python.defaultInterpreterPath": "${workspaceFolder:backend}/.venv/bin/python",
+        "python.terminal.activateEnvironment": true,
+        "python.terminal.activateEnvInCurrentTerminal": true
+    },
+    "extensions": {
+        "recommendations": [
+            "ms-python.python",
+            "ms-python.vscode-pylance",
+            "charliermarsh.ruff"
+        ]
+    }
+}

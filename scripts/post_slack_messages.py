@@ -6,7 +6,7 @@ import json
 import time
 import uuid
 
-import requests
+import httpx
 from dotenv import dotenv_values
 
 # Load config
@@ -147,7 +147,7 @@ for i, msg_data in enumerate(messages, 1):
     cookies = {'d': XOXD_TOKEN}
     headers = {'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'}
     
-    response = requests.post(
+    response = httpx.post(
         'https://johnnyhuy.slack.com/api/chat.postMessage',
         data=data,
         cookies=cookies,
@@ -192,7 +192,7 @@ for i, msg_data in enumerate(messages, 1):
                 '_x_app_name': 'client'
             }
             
-            reply_response = requests.post(
+            reply_response = httpx.post(
                 'https://johnnyhuy.slack.com/api/chat.postMessage',
                 data=reply_data,
                 cookies=cookies,
