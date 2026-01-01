@@ -1,21 +1,20 @@
 # Backend Dockerfile for Wingman
-FROM python:3.14-slim
+FROM python:3.13-slim
 
 WORKDIR /app
 
-# Install system dependencies and uv
+# Copy pyproject.toml first for dependency installation
+COPY pyproject.toml .
+
+# Install system dependencies, uv, and Python dependencies in one layer
 RUN apt-get update && apt-get install -y \
     gcc \
+    g++ \
     postgresql-client \
     curl \
     && rm -rf /var/lib/apt/lists/* \
-    && curl -LsSf https://astral.sh/uv/install.sh | sh
-
-ENV PATH="/root/.cargo/bin:${PATH}"
-
-# Copy requirements and install dependencies
-COPY requirements.txt .
-RUN uv pip install --system --no-cache -r requirements.txt
+    && curl -LsSf https://astral.sh/uv/install.sh | sh \
+    && /root/.local/bin/uv pip install --system --no-cache .
 
 # Copy application code
 COPY . .

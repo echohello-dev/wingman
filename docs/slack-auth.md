@@ -41,9 +41,16 @@ im:history, im:read, im:write, users:read
 
 ### Socket Mode (Development) ✅ Recommended for Local
 
-**Pros:** No public URL needed, works behind firewalls, easy setup
+**What it is**: WebSocket connection instead of HTTP webhooks. Perfect for local development and testing.
 
-**Cons:** Not ideal for production scale
+**Pros:**
+- No public URL needed
+- Works behind firewalls
+- Easy local testing
+- No redirect URIs required
+
+**Cons:**
+- Not recommended for production scale
 
 **Setup:**
 ```bash
@@ -52,31 +59,43 @@ SLACK_APP_TOKEN=xapp-xxx
 SLACK_SIGNING_SECRET=xxx
 ```
 
-**Code:**
-```python
-from slack_bolt.adapter.socket_mode import SocketModeHandler
-
-handler = SocketModeHandler(app, SLACK_APP_TOKEN)
-handler.start()
-```
+**Installation process:**
+1. Run `mise run tf-apply` (Terraform creates the app definition)
+2. Go to [api.slack.com/apps](https://api.slack.com/apps) and select your app
+3. Click **"Install to Workspace"** button
+4. Click **"Allow"**
+5. After installation, go to **OAuth & Permissions** → Copy **Bot User OAuth Token** (xoxb-...)
+6. Go to **Basic Information** → **App-Level Tokens** → Click **"Generate Token and Scopes"**
+   - Name it (e.g., "Socket Mode")
+   - Add scope: `connections:write`
+   - Copy the token (xapp-...)
+7. Go to **Basic Information** → Copy **Signing Secret**
+8. Add all three to `.env` and run `mise run tf-sync-vars`
 
 ### HTTP Mode (Production) ✅ Recommended for Production
 
-**Pros:** Better for scale, standard HTTP infrastructure
+**What it is**: Traditional HTTP webhooks. Better for production deployments.
 
-**Cons:** Requires public HTTPS endpoint
+**Pros:**
+- Better for scale and production
+- Standard HTTP infrastructure
+- Mature and stable
+
+**Cons:**
+- Requires public HTTPS endpoint
+- Requires valid SSL certificate
 
 **Setup:**
 ```bash
 SLACK_BOT_TOKEN=xoxb-xxx
 SLACK_SIGNING_SECRET=xxx
-# No SLACK_APP_TOKEN needed
+# No SLACK_APP_TOKEN needed for HTTP mode
 ```
 
 **Requirements:**
 - Public HTTPS URL
 - Valid SSL certificate
-- Configure Request URL in Slack app settings
+- Configure Request URL in Slack app settings under **Event Subscriptions**
 
 ## Security Best Practices
 

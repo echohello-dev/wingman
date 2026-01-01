@@ -20,10 +20,12 @@ See [terraform.md](terraform.md) for complete setup instructions.
 ```bash
 mise run tf-init    # Initialize Terraform
 mise run tf-plan    # Review changes
-mise run tf-apply   # Create Slack app
+mise run tf-apply   # Create Slack app (auto-approves)
 ```
 
-The app will be automatically created with all required scopes and configuration.
+Terraform will create the Slack app with all required scopes and configuration.
+
+**Next**: Manually install the app to your workspace (see step 3 below).
 
 ### Option B: Manual Setup
 
@@ -66,16 +68,31 @@ mise run tf-init
 mise run tf-plan
 mise run tf-apply
 
-# Install app to workspace (visit OAuth URL)
-mise run tf-output | grep oauth_authorize_url
+# IMPORTANT: Install app to workspace manually
+# 1. Go to https://api.slack.com/apps
+# 2. Select your Wingman app
+# 3. Click "Install to Workspace" button
+# 4. Click "Allow"
 
-# Load credentials from Terraform
-mise run tf-load-vars
+# After installation, collect tokens from app settings:
+# - Bot Token: OAuth & Permissions → "Bot User OAuth Token" (starts with xoxb-)
+# - App Token: Basic Information → "App-Level Tokens" → Generate
+#   (When generating, add scope: connections:write)
+# - Signing Secret: Basic Information → "Signing Secret"
+```
 
-# Manually add bot and app tokens after installing app to workspace
-# Edit .env and add:
-# SLACK_BOT_TOKEN=xoxb-...
-# SLACK_APP_TOKEN=xapp-...
+Edit `.env` and add the tokens:
+
+```bash
+SLACK_BOT_TOKEN=xoxb-your-bot-token
+SLACK_APP_TOKEN=xapp-your-app-token
+SLACK_SIGNING_SECRET=your-signing-secret
+```
+
+Then sync to Terraform Cloud:
+
+```bash
+mise run tf-sync-vars
 ```
 
 ### 4. Configure Manually (Alternative)
