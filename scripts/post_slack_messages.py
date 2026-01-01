@@ -24,87 +24,87 @@ if not XOXC_TOKEN or not XOXD_TOKEN or not CHANNEL or not TEAM_ID:
 
 messages = [
     {
-        "text": "Hey team! I'm trying to set up the new customer dashboard but getting a 403 error when accessing the analytics endpoint. Has anyone seen this before?",
+        "text": ":warning: Hey team! I'm trying to set up the new customer dashboard but getting a 403 error when accessing the analytics endpoint. Has anyone seen this before?",
         "replies": [
-            "Check if you have the analytics.read permission in your API token scope",
-            "Also verify the endpoint URL - it should be /api/v3/analytics not /api/analytics"
+            ":key: Check if you have the analytics.read permission in your API token scope",
+            ":link: Also verify the endpoint URL - it should be /api/v3/analytics not /api/analytics"
         ]
     },
     {
-        "text": "Quick question - what's our current policy on data retention for user session logs? Need this for the compliance audit.",
+        "text": ":clipboard: Quick question - what's our current policy on data retention for user session logs? Need this for the compliance audit.",
         "replies": [
-            "We keep session logs for 90 days, then they're automatically archived to cold storage for 7 years per compliance requirements"
+            ":calendar: We keep session logs for 90 days, then they're automatically archived to cold storage for 7 years per compliance requirements"
         ]
     },
     {
-        "text": "Getting a weird error in production:\n```\nTypeError: Cannot read property 'userId' of undefined\n  at UserService.authenticate (user-service.js:45)\n```\nThis started happening after the last deployment. Any ideas?",
+        "text": ":bug: Getting a weird error in production:\n```\nTypeError: Cannot read property 'userId' of undefined\n  at UserService.authenticate (user-service.js:45)\n```\nThis started happening after the last deployment. Any ideas?",
         "replies": [
-            "This looks like the user object is null. Did we change the auth middleware recently?",
-            "Yes, I see the issue. The JWT decode is failing silently. I'll push a fix"
+            ":thinking_face: This looks like the user object is null. Did we change the auth middleware recently?",
+            ":white_check_mark: Yes, I see the issue. The JWT decode is failing silently. I'll push a fix"
         ]
     },
     {
-        "text": "Can someone point me to the documentation on how to configure the rate limiter for our API endpoints? I need to adjust the limits for the new payment service.",
+        "text": ":books: Can someone point me to the documentation on how to configure the rate limiter for our API endpoints? I need to adjust the limits for the new payment service.",
         "replies": []
     },
     {
-        "text": "I'm onboarding a new team member - where can I find the setup guide for local development environment? Specifically looking for the Docker compose setup instructions.",
+        "text": ":wave: I'm onboarding a new team member - where can I find the setup guide for local development environment? Specifically looking for the Docker compose setup instructions.",
         "replies": [
-            "Check the README.md in the root - it has the full setup guide including Docker compose"
+            ":whale: Check the README.md in the root - it has the full setup guide including Docker compose"
         ]
     },
     {
-        "text": "Has anyone successfully integrated the webhook system with Stripe? I'm following the docs but the signature validation keeps failing.",
+        "text": ":credit_card: Has anyone successfully integrated the webhook system with Stripe? I'm following the docs but the signature validation keeps failing.",
         "replies": [
-            "Make sure you're using the webhook secret from the Stripe dashboard, not the API secret",
-            "Also check that you're reading the raw request body before parsing it as JSON"
+            ":key: Make sure you're using the webhook secret from the Stripe dashboard, not the API secret",
+            ":eyes: Also check that you're reading the raw request body before parsing it as JSON"
         ]
     },
     {
-        "text": "Need help understanding the authentication flow in our mobile app. Is there a sequence diagram or architecture doc somewhere?",
+        "text": ":lock: Need help understanding the authentication flow in our mobile app. Is there a sequence diagram or architecture doc somewhere?",
         "replies": []
     },
     {
-        "text": "Question about our database migration strategy - should I create a new migration file or modify the existing one? This is for adding a new column to the users table.",
+        "text": ":database: Question about our database migration strategy - should I create a new migration file or modify the existing one? This is for adding a new column to the users table.",
         "replies": [
-            "Always create a new migration file. Never modify existing ones that have been deployed"
+            ":no_entry: Always create a new migration file. Never modify existing ones that have been deployed"
         ]
     },
     {
-        "text": "Getting timeout errors on the `/api/v2/reports` endpoint when generating large reports. Current timeout is set to 30s - is there a recommended value for this?",
+        "text": ":hourglass_flowing_sand: Getting timeout errors on the `/api/v2/reports` endpoint when generating large reports. Current timeout is set to 30s - is there a recommended value for this?",
         "replies": [
-            "For report generation, we typically use 60s timeout. You can also consider making it async with a webhook callback"
+            ":chart_with_upwards_trend: For report generation, we typically use 60s timeout. You can also consider making it async with a webhook callback"
         ]
     },
     {
-        "text": "I need to update the error handling in our payment processing module. What's the best practice for handling transient failures vs permanent failures?",
+        "text": ":shield: I need to update the error handling in our payment processing module. What's the best practice for handling transient failures vs permanent failures?",
         "replies": []
     },
     {
-        "text": "Can someone explain the difference between our staging and pre-prod environments? Which one should I use for testing the new feature flag system?",
+        "text": ":rocket: Can someone explain the difference between our staging and pre-prod environments? Which one should I use for testing the new feature flag system?",
         "replies": [
-            "Staging is for integration testing, pre-prod mirrors production config. Use pre-prod for feature flags"
+            ":gear: Staging is for integration testing, pre-prod mirrors production config. Use pre-prod for feature flags"
         ]
     },
     {
-        "text": "Looking for the API documentation on user permissions. I need to implement role-based access control for the new admin dashboard.",
+        "text": ":policeman: Looking for the API documentation on user permissions. I need to implement role-based access control for the new admin dashboard.",
         "replies": []
     },
     {
-        "text": "Has anyone worked with the notification service recently? I'm trying to send push notifications but they're not showing up on iOS devices.",
+        "text": ":iphone: Has anyone worked with the notification service recently? I'm trying to send push notifications but they're not showing up on iOS devices.",
         "replies": [
-            "Did you update the APNs certificate? It expired last month",
-            "Oh that's probably it! Where do I find the new certificate?"
+            ":warning: Did you update the APNs certificate? It expired last month",
+            ":bulb: Oh that's probably it! Where do I find the new certificate?"
         ]
     },
     {
-        "text": "Quick one - what's our standard for logging sensitive information? Should I redact credit card numbers in application logs or do we have automatic scrubbing?",
+        "text": ":lock_with_key: Quick one - what's our standard for logging sensitive information? Should I redact credit card numbers in application logs or do we have automatic scrubbing?",
         "replies": []
     },
     {
-        "text": "I'm seeing inconsistent results from the search API. Same query returns different results on subsequent calls. Is caching enabled and could that be the issue?",
+        "text": ":mag: I'm seeing inconsistent results from the search API. Same query returns different results on subsequent calls. Is caching enabled and could that be the issue?",
         "replies": [
-            "Yes, we have Redis caching with 5-minute TTL. The inconsistency might be from cache warming"
+            ":redis: Yes, we have Redis caching with 5-minute TTL. The inconsistency might be from cache warming"
         ]
     }
 ]
