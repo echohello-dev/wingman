@@ -3,8 +3,10 @@
 Post realistic support messages to Slack using session tokens.
 Generates conversations using OpenRouter Gemini 3 Flash if API key available.
 Can optionally use GitHub context (commits, PRs, issues) to make messages more realistic.
+Includes message formatting (bold, links, emojis, lists) and reactions.
 """
 import json
+import re
 import subprocess
 import time
 import uuid
@@ -26,6 +28,134 @@ if not XOXC_TOKEN or not XOXD_TOKEN or not CHANNEL or not TEAM_ID:
     print("Missing required env vars: SLACK_XOXC_TOKEN, SLACK_XOXD_TOKEN, SLACK_CHANNEL_ID, SLACK_TEAM_ID")
     import sys
     sys.exit(1)
+
+
+def parse_rich_text_from_string(text):
+    """
+    Parse a string with markdown-like formatting and convert to rich_text elements.
+    Supports:
+    - *bold text* or **bold text**
+    - _italic text_
+    - ~strikethrough~
+    - `code`
+    - <url> or <url|label> for links
+    - :emoji_name: for emoji
+    - Bullet points with • or -
+    """
+    elements = []
+    
+    # Split by newlines to handle lists
+    lines = text.split('\n')
+    
+    for line_idx, line in enumerate(lines):
+        # Check if this is a bullet point
+        is_bullet = line.strip().startswith('•') or (line.strip().startswith('-') and len(line) > 1)
+        
+        if is_bullet:
+            # Add spacing before list items
+            if line_idx > 0 and not lines[line_idx - 1].strip().startswith(('•', '-')):
+                elements.append({"type": "text", "text": "\n"})
+            
+            # Process the line content (remove bullet point)
+            line_content = re.sub(r'^[\s•-]+', '', line)
+        else:
+            line_content = line
+        
+        # Parse inline formatting
+        pos = 0
+        for match in re.finditer(
+            r'(\*\*|__)(.*?)\1|'  # bold
+            r'(_)(.*?)\3|'  # italic
+            r'(~~)(.*?)\5|'  # strikethrough (not supported in rich_text, use tilde)
+            r'(`)(.*?)\6|'  # code
+            r'(<(https?://[^|>]+)(?:\|([^>]+))?|:([a-z_0-9]+):>)|'  # links and emoji
+            r'([*_~`<:])',  # Unmatched formatting chars
+            line_content
+        ):
+            # Add text before match
+            if match.start() > pos:
+                plain_text = line_content[pos:match.start()]
+                if plain_text:
+                    elements.append({"type": "text", "text": plain_text})
+            
+            # Process the match
+            if match.group(1):  # Bold
+                elements.append({
+                    "type": "text",
+                    "text": match.group(2),
+                    "style": {"bold": True}
+                })
+            elif match.group(3):  # Italic
+                elements.append({
+                    "type": "text",
+                    "text": match.group(4),
+                    "style": {"italic": True}
+                })
+            elif match.group(5):  # Strikethrough (render with tilde styling if available)
+                elements.append({
+                    "type": "text",
+                    "text": match.group(6),
+                    "style": {"strike": True}
+                })
+            elif match.group(7):  # Code
+                elements.append({
+                    "type": "text",
+                    "text": match.group(8),
+                    "style": {"code": True}
+                })
+            elif match.group(9):  # Link or emoji
+                if match.group(10):  # Link
+                    url = match.group(11)
+                    label = match.group(12) if match.group(12) else url
+                    elements.append({
+                        "type": "link",
+                        "url": url,
+                        "text": label
+                    })
+                elif match.group(13):  # Emoji
+                    elements.append({
+                        "type": "emoji",
+                        "name": match.group(13)
+                    })
+            
+            pos = match.end()
+        
+        # Add remaining text
+        if pos < len(line_content):
+            remaining = line_content[pos:]
+            if remaining:
+                elements.append({"type": "text", "text": remaining})
+        
+        # Add newline between lines (except last)
+        if line_idx < len(lines) - 1:
+            elements.append({"type": "text", "text": "\n"})
+    
+    return elements if elements else [{"type": "text", "text": text}]
+
+
+def add_reaction(channel, timestamp, emoji):
+    """Add a reaction to a message."""
+    data = {
+        'token': XOXC_TOKEN,
+        'channel': channel,
+        'timestamp': timestamp,
+        'name': emoji,
+    }
+    
+    cookies = {'d': XOXD_TOKEN}
+    headers = {'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'}
+    
+    try:
+        response = httpx.post(
+            'https://johnnyhuy.slack.com/api/reactions.add',
+            data=data,
+            cookies=cookies,
+            headers=headers,
+            timeout=5
+        )
+        return response.json().get('ok', False)
+    except Exception:
+        return False
 
 
 def get_github_context():
@@ -135,9 +265,23 @@ Messages should include:
 - Deprecation warnings
 - Casual but professional tone (semi-formal)
 - Some typos and natural language variation
-- Emoji use (minimal, natural)
+- Minimal emoji use with :emoji_name: syntax (e.g., :rocket:, :warning:, :wave:)
+- Links with format <url|label> for URLs
+- Formatting: use *bold*, _italic_, ~strikethrough~, `code` for inline code
+- Bullet points with • or - prefix
 - Mix of quick questions, detailed issues, and team coordination
-- Each message has 0-3 replies"""
+- Each message has 0-3 replies
+
+IMPORTANT: Use markdown-like formatting in text:
+- *bold text* for emphasis
+- _italic text_ for secondary emphasis
+- `code` for technical terms
+- <https://example.com|link text> for URLs
+- :emoji_name: for emojis
+- • bullet points for lists
+
+Example: "*Issue*: _Database timeout_ on <https://github.com|PR#123>. `SELECT` query taking 30s :warning:"
+"""
 
     if github_context:
         context_str = "Use this real project context when generating messages:\n"
@@ -248,136 +392,136 @@ Messages should include:
 # Default fallback messages
 fallback_messages = [
     {
-        "text": "Hey team, I'm getting a 403 on the new dashboard analytics endpoint :thinking_face: Has anyone else run into this?",
+        "text": "Hey team, I'm getting a *403* on the new dashboard analytics endpoint :thinking_face: Has anyone else run into this?",
         "replies": [
-            "Did you check if your token has the analytics.read scope?",
-            "Also, make sure the URL is /api/v3/analytics, not /api/analytics. Easy typo to make"
+            "Did you check if your token has the `analytics.read` scope?",
+            "Also, make sure the URL is `/api/v3/analytics`, not `/api/analytics`. Easy typo to make"
         ]
     },
     {
-        "text": "Quick question - what's our data retention policy for session logs? Need this for the compliance audit",
+        "text": "Quick question - what's our _data retention policy_ for session logs? Need this for the compliance audit",
         "replies": [
             "90 days in hot storage, then goes to cold storage for 7 years per policy"
         ]
     },
     {
-        "text": "This error just showed up in prod :bug:: \n```\nTypeError: Cannot read property 'userId' of undefined\n  at UserService.authenticate (user-service.js:45)\n```\nAnyone know what we deployed?",
+        "text": "*Issue* in prod :bug:: Database query timeout on user auth\n`TypeError: Cannot read property 'userId' of undefined` at `user-service.js:45`\nAnyone know what we deployed?",
         "replies": [
             "Did we change the auth middleware recently?",
             "Yeah, I see it now. JWT decode is failing silently. Let me push a fix"
         ]
     },
     {
-        "text": "Could someone send me the rate limiter config docs? Setting up limits for the payment service and need guidance",
+        "text": "Could someone send me the rate limiter config docs? Setting up limits for the _payment service_ and need guidance",
         "replies": []
     },
     {
         "text": "Onboarding new team member tomorrow - where can I find the local dev setup guide? Need the Docker compose instructions :wave:",
         "replies": [
-            "Root README has everything including the Docker compose setup :whale:"
+            "Root `README` has everything including the Docker compose setup :whale:"
         ]
     },
     {
-        "text": "Has anyone successfully integrated Stripe webhooks? Signature validation keeps failing and I can't figure out why",
+        "text": "Has anyone successfully integrated <https://stripe.com/docs/webhooks|Stripe webhooks>? Signature validation keeps failing and I can't figure out why",
         "replies": [
             "Make sure you're using the webhook secret from the dashboard, not your API secret",
             "Also gotta read the raw request body before parsing as JSON. That's a common gotcha"
         ]
     },
     {
-        "text": "Could use some help - how does the authentication flow work on mobile? Is there a sequence diagram or docs somewhere?",
+        "text": "Could use some help - how does the *authentication flow* work on mobile? Is there a sequence diagram or docs somewhere?",
         "replies": []
     },
     {
-        "text": "Quick question on database migrations: should I create a new file or modify the existing one? Adding a column to the users table",
+        "text": "Quick question on _database migrations_: should I create a new file or modify the existing one? Adding a column to the `users` table",
         "replies": [
-            "Always create a new migration file. Never modify deployed migrations - that's how things break :no_entry:"
+            "Always create a *new migration file*. Never modify deployed migrations - that's how things break :no_entry:"
         ]
     },
     {
-        "text": "Getting timeout errors on /api/v2/reports when generating large reports. Timeout is set to 30s currently - what's the recommended value?",
+        "text": "Getting timeout errors on `/api/v2/reports` when generating large reports. Timeout is set to 30s currently - what's the recommended value?",
         "replies": [
-            "60s is typical for report generation. Or consider making it async with a callback if reports are heavy"
+            "60s is typical for report generation. Or consider making it _async with a callback_ if reports are heavy"
         ]
     },
     {
-        "text": "What's the best approach for handling retries in the payment module? How do you differentiate between transient and permanent failures?",
+        "text": "What's the best approach for handling *retries* in the payment module? How do you differentiate between `transient` and `permanent` failures?",
         "replies": []
     },
     {
-        "text": "Question - staging vs pre-prod: which one should I use for feature flag testing? :rocket:",
+        "text": "Question - _staging_ vs _pre-prod_: which one should I use for feature flag testing? :rocket:",
         "replies": [
-            "Staging is for integration testing. Pre-prod mirrors production config. Use pre-prod for feature flags"
+            "Staging is for integration testing. Pre-prod mirrors production config. Use *pre-prod* for feature flags"
         ]
     },
     {
-        "text": "Looking for documentation on user permissions. Need to implement role-based access control for the admin dashboard",
+        "text": "Looking for documentation on *user permissions*. Need to implement role-based access control for the admin dashboard",
         "replies": []
     },
     {
-        "text": "Push notifications aren't showing on iOS. Has anyone worked with the notification service recently? :iphone:",
+        "text": "*Push notifications* aren't showing on iOS. Has anyone worked with the notification service recently? :iphone:",
         "replies": [
-            "When's the last time you updated the APNs certificate? Pretty sure it expired :warning:",
+            "When's the last time you updated the *APNs certificate*? Pretty sure it expired :warning:",
             "Oh, that's probably it! Where can I find the new one? :bulb:"
         ]
     },
     {
-        "text": "Security question - do we automatically redact credit card numbers in logs, or should they be manually scrubbed?",
+        "text": "*Security question* - do we automatically redact _credit card numbers_ in logs, or should they be manually scrubbed?",
         "replies": []
     },
     {
-        "text": "Seeing inconsistent results from the search API. Same query returns different results on subsequent calls. Is Redis caching enabled?",
+        "text": "Seeing _inconsistent results_ from the search API. Same query returns different results on subsequent calls. Is Redis caching enabled?",
         "replies": [
-            "Yes, Redis caching with 5-minute TTL. Could be cache warming issues :redis:"
+            "Yes, Redis caching with 5-minute TTL. Could be cache warming issues :mag:"
         ]
     },
     {
-        "text": ":rocket: heads up - deploying auth service v2.1 to staging in 30min. if you're testing auth stuff plz use staging-v2",
+        "text": ":rocket: *heads up* - deploying _auth service v2.1_ to staging in 30min. if you're testing auth stuff plz use `staging-v2`",
         "replies": [
             "thanks for the heads up! when's it going to prod?",
             "probably friday if no issues in staging. ill ping the channel"
         ]
     },
     {
-        "text": "just merged PR #487 - refactored the payment webhook handler to be more robust. plz review when u get a sec",
+        "text": "just merged <https://github.com/echohello-dev/wingman/pull/487|PR #487> - refactored the payment webhook handler to be more robust. plz review when u get a sec :eyes:",
         "replies": [
-            "lgtm! just left a comment on line 42",
-            "approved! ship it"
+            "lgtm! just left a comment on line 42 :+1:",
+            "approved! ship it :ship:"
         ]
     },
     {
-        "text": ":warning: ATTENTION: we're deprecating the old `/api/v1/users` endpoint next month. migrate to `/api/v2/users` asap. see docs for migration guide",
+        "text": ":warning: *ATTENTION*: we're deprecating the old `/api/v1/users` endpoint _next month_. migrate to `/api/v2/users` asap. see <https://docs.example.com|docs> for migration guide",
         "replies": [
             "how long do we have to migrate?",
             "until feb 15. we're sending emails to all customers but best to get it done early"
         ]
     },
     {
-        "text": "performance update: search endpoint now doing fuzzy matching. this may affect some queries but accuracy is way better. feedback welcome :mag:",
+        "text": "*performance update*: search endpoint now doing _fuzzy matching_. this may affect some queries but accuracy is way better. feedback welcome :mag:",
         "replies": [
             "nice! how's the perf impact?",
-            "minimal actually. redis caching handles most of it"
+            "minimal actually. redis caching handles most of it :zap:"
         ]
     },
     {
-        "text": "planned maintenance: database will be down for upgrades tomorrow 2am-3am pst. notify ur customers pls",
+        "text": "*planned maintenance*: database will be down for upgrades tomorrow 2am-3am pst. notify ur customers pls :warning:",
         "replies": [
-            "done. already sent notifications",
-            "thx. also FYI we're upgrading to postgres 15"
+            "done. already sent notifications :email:",
+            "thx. also FYI we're upgrading to `postgres 15` :elephant:"
         ]
     },
     {
-        "text": "FYI rolling out new UI theme next week. if things look weird that's expected lol. should stabilize by wed",
+        "text": "*FYI* rolling out new UI theme next week. if things look weird that's expected lol. should stabilize by wed :art:",
         "replies": [
-            "dark mode finally??",
-            "yeah! and better mobile responsive too"
+            "dark mode finally?? :moon:",
+            "yeah! and better mobile responsive too :iphone:"
         ]
     },
     {
-        "text": "quick status: api latency spiked this morning around 9am but we've sorted it now. no data loss",
+        "text": "quick *status update*: api latency spiked this morning around 9am but we've sorted it now. no data loss :relieved:",
         "replies": [
             "what caused it?",
-            "one of the load balancers got overloaded. scaled it up"
+            "one of the load balancers got overloaded. scaled it up :muscle:"
         ]
     }
 ]
@@ -400,12 +544,15 @@ posted_count = 0
 for i, msg_data in enumerate(messages, 1):
     text = msg_data['text']
     
-    # Create rich text blocks
+    # Parse formatting and create rich text elements
+    elements = parse_rich_text_from_string(text)
+    
+    # Create rich text blocks with formatted elements
     blocks = [{
         "type": "rich_text",
         "elements": [{
             "type": "rich_text_section",
-            "elements": [{"type": "text", "text": text}]
+            "elements": elements
         }]
     }]
     
@@ -444,15 +591,25 @@ for i, msg_data in enumerate(messages, 1):
         print(f"Message {i}/{len(messages)} posted successfully")
         success += 1
         
+        # Extract emoji from message and add as reaction (optional)
+        emoji_match = re.search(r':([a-z_0-9]+):', text)
+        if emoji_match:
+            emoji_name = emoji_match.group(1)
+            time.sleep(0.5)
+            add_reaction(CHANNEL, thread_ts, emoji_name)
+        
         # Post replies if any
         for reply_idx, reply_text in enumerate(msg_data['replies'], 1):
             time.sleep(1)  # Small delay between replies
+            
+            # Parse reply formatting
+            reply_elements = parse_rich_text_from_string(reply_text)
             
             reply_blocks = [{
                 "type": "rich_text",
                 "elements": [{
                     "type": "rich_text_section",
-                    "elements": [{"type": "text", "text": reply_text}]
+                    "elements": reply_elements
                 }]
             }]
             
