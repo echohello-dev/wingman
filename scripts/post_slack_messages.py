@@ -19,13 +19,14 @@ config = dotenv_values("/Users/johnny/projects/github.com/echohello-dev/wingman/
 
 XOXC_TOKEN = config['SLACK_XOXC_TOKEN']
 XOXD_TOKEN = config['SLACK_XOXD_TOKEN']
+SLACK_ORG_URL = config.get('SLACK_ORG_URL')
 CHANNEL = config.get('SLACK_CHANNEL_ID')
 TEAM_ID = config.get('SLACK_TEAM_ID')
 OPENROUTER_API_KEY = config.get('OPENROUTER_API_KEY')
 GITHUB_TOKEN = config.get('GITHUB_TOKEN')
 
-if not XOXC_TOKEN or not XOXD_TOKEN or not CHANNEL or not TEAM_ID:
-    print("Missing required env vars: SLACK_XOXC_TOKEN, SLACK_XOXD_TOKEN, SLACK_CHANNEL_ID, SLACK_TEAM_ID")
+if not XOXC_TOKEN or not XOXD_TOKEN or not SLACK_ORG_URL or not CHANNEL or not TEAM_ID:
+    print("Missing required env vars: SLACK_XOXC_TOKEN, SLACK_XOXD_TOKEN, SLACK_ORG_URL, SLACK_CHANNEL_ID, SLACK_TEAM_ID")
     import sys
     sys.exit(1)
 
@@ -154,7 +155,7 @@ def add_reaction(channel, timestamp, emoji):
     
     try:
         response = httpx.post(
-            'https://johnnyhuy.slack.com/api/reactions.add',
+            f'{SLACK_ORG_URL}/api/reactions.add',
             data=data,
             cookies=cookies,
             headers=headers,
@@ -584,7 +585,7 @@ for i, msg_data in enumerate(messages, 1):
     headers = {'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'}
     
     response = httpx.post(
-        'https://johnnyhuy.slack.com/api/chat.postMessage',
+        f'{SLACK_ORG_URL}/api/chat.postMessage',
         data=data,
         cookies=cookies,
         headers=headers
@@ -639,7 +640,7 @@ for i, msg_data in enumerate(messages, 1):
             }
             
             reply_response = httpx.post(
-                'https://johnnyhuy.slack.com/api/chat.postMessage',
+                f'{SLACK_ORG_URL}/api/chat.postMessage',
                 data=reply_data,
                 cookies=cookies,
                 headers=headers
