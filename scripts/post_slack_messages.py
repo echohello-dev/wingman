@@ -38,7 +38,7 @@ def parse_rich_text_from_string(text):
     - _italic text_
     - ~strikethrough~
     - `code`
-    - <url> or <url|label> for links
+    - <url|label> or <url> for links
     - :emoji_name: for emoji
     - Bullet points with • or -
     """
@@ -49,7 +49,7 @@ def parse_rich_text_from_string(text):
     
     for line_idx, line in enumerate(lines):
         # Check if this is a bullet point
-        is_bullet = line.strip().startswith('•') or (line.strip().startswith('-') and len(line) > 1)
+        is_bullet = line.strip().startswith('•') or (line.strip().startswith('-') and len(line.strip()) > 1 and line.strip()[1] == ' ')
         
         if is_bullet:
             # Add spacing before list items
@@ -57,21 +57,23 @@ def parse_rich_text_from_string(text):
                 elements.append({"type": "text", "text": "\n"})
             
             # Process the line content (remove bullet point)
-            line_content = re.sub(r'^[\s•-]+', '', line)
+            line_content = re.sub(r'^[\s•-]+', '', line).lstrip()
         else:
             line_content = line
         
-        # Parse inline formatting
+        # Parse inline formatting using a more robust approach
         pos = 0
-        for match in re.finditer(
-            r'(\*\*|__)(.*?)\1|'  # bold
-            r'(_)(.*?)\3|'  # italic
-            r'(~~)(.*?)\5|'  # strikethrough (not supported in rich_text, use tilde)
-            r'(`)(.*?)\6|'  # code
-            r'(<(https?://[^|>]+)(?:\|([^>]+))?|:([a-z_0-9]+):>)|'  # links and emoji
-            r'([*_~`<:])',  # Unmatched formatting chars
-            line_content
-        ):
+        pattern = re.compile(
+            r'(\*\*)([^*]+?)\1|'  # **bold** (double asterisk)
+            r'(\*)([^\s*][^*]*?[^\s*]|[^\s*])\3(?!\*)|'  # *bold* (single asterisk, non-greedy)
+            r'(_)([^_]+?)\5|'  # _italic_
+            r'(~)([^~]+?)\7|'  # ~strikethrough~
+            r'(`)([^`]+?)\9|'  # `code`
+            r'(<(https?://[^|>]+)(?:\|([^>]+))?[^<]*>)|'  # <url|label> or <url>
+            r'(:([a-z_0-9]+):)'  # :emoji_name:
+        )
+        
+        for match in pattern.finditer(line_content):
             # Add text before match
             if match.start() > pos:
                 plain_text = line_content[pos:match.start()]
@@ -79,44 +81,49 @@ def parse_rich_text_from_string(text):
                     elements.append({"type": "text", "text": plain_text})
             
             # Process the match
-            if match.group(1):  # Bold
+            if match.group(2):  # **bold**
                 elements.append({
                     "type": "text",
                     "text": match.group(2),
                     "style": {"bold": True}
                 })
-            elif match.group(3):  # Italic
+            elif match.group(4):  # *bold*
                 elements.append({
                     "type": "text",
                     "text": match.group(4),
-                    "style": {"italic": True}
+                    "style": {"bold": True}
                 })
-            elif match.group(5):  # Strikethrough (render with tilde styling if available)
+            elif match.group(6):  # _italic_
                 elements.append({
                     "type": "text",
                     "text": match.group(6),
-                    "style": {"strike": True}
+                    "style": {"italic": True}
                 })
-            elif match.group(7):  # Code
+            elif match.group(8):  # ~strikethrough~
                 elements.append({
                     "type": "text",
                     "text": match.group(8),
+                    "style": {"strike": True}
+                })
+            elif match.group(10):  # `code`
+                elements.append({
+                    "type": "text",
+                    "text": match.group(10),
                     "style": {"code": True}
                 })
-            elif match.group(9):  # Link or emoji
-                if match.group(10):  # Link
-                    url = match.group(11)
-                    label = match.group(12) if match.group(12) else url
-                    elements.append({
-                        "type": "link",
-                        "url": url,
-                        "text": label
-                    })
-                elif match.group(13):  # Emoji
-                    elements.append({
-                        "type": "emoji",
-                        "name": match.group(13)
-                    })
+            elif match.group(12):  # <url|label> or <url>
+                url = match.group(12)
+                label = match.group(13) if match.group(13) else url
+                elements.append({
+                    "type": "link",
+                    "url": url,
+                    "text": label
+                })
+            elif match.group(15):  # :emoji:
+                elements.append({
+                    "type": "emoji",
+                    "name": match.group(15)
+                })
             
             pos = match.end()
         
