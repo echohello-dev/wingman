@@ -68,20 +68,19 @@ mise run tf-init
 mise run tf-plan
 mise run tf-apply
 
-# IMPORTANT: Install app to workspace manually
+# IMPORTANT: Install app to workspace and get tokens manually
 # 1. Go to https://api.slack.com/apps
 # 2. Select your Wingman app
-# 3. Click "Install to Workspace" button
-# 4. Click "Allow"
-
-# After installation, collect tokens from app settings:
-# - Bot Token: OAuth & Permissions → "Bot User OAuth Token" (starts with xoxb-)
-# - App Token: Basic Information → "App-Level Tokens" → Generate
-#   (When generating, add scope: connections:write)
-# - Signing Secret: Basic Information → "Signing Secret"
+# 3. Click "Install to Workspace" button → Click "Allow"
+# 4. Get Bot Token: Go to "OAuth & Permissions" → Copy "Bot User OAuth Token" (xoxb-...)
+# 5. Get App Token: Go to "Basic Information" → "App-Level Tokens" → Click "Generate Token and Scopes"
+#    - Give it a name (e.g., "Socket Mode")
+#    - Add scope: connections:write
+#    - Click "Generate" → Copy the token (xapp-...)
+# 6. Get Signing Secret: Go to "Basic Information" → Copy "Signing Secret"
 ```
 
-Edit `.env` and add the tokens:
+Edit `.env` and add all three tokens:
 
 ```bash
 SLACK_BOT_TOKEN=xoxb-your-bot-token
