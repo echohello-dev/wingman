@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """
 Post realistic support messages to Slack using session tokens.
-Generates conversations using OpenRouter Gemini 3 Flash if API key available,
-otherwise uses deterministic in-memory messages.
+Generates conversations using OpenRouter Gemini 3 Flash if API key available.
+Can optionally use GitHub context (commits, PRs, issues) to make messages more realistic.
 """
 import json
 import time
 import uuid
+import subprocess
 
 import httpx
 from dotenv import dotenv_values
@@ -19,18 +20,114 @@ XOXD_TOKEN = config['SLACK_XOXD_TOKEN']
 CHANNEL = config.get('SLACK_CHANNEL_ID')
 TEAM_ID = config.get('SLACK_TEAM_ID')
 OPENROUTER_API_KEY = config.get('OPENROUTER_API_KEY')
+GITHUB_TOKEN = config.get('GITHUB_TOKEN')
 
 if not XOXC_TOKEN or not XOXD_TOKEN or not CHANNEL or not TEAM_ID:
-    print("❌ Missing required env vars: SLACK_XOXC_TOKEN, SLACK_XOXD_TOKEN, SLACK_CHANNEL_ID, SLACK_TEAM_ID")
+    print("Missing required env vars: SLACK_XOXC_TOKEN, SLACK_XOXD_TOKEN, SLACK_CHANNEL_ID, SLACK_TEAM_ID")
     import sys
     sys.exit(1)
 
 
-def generate_messages_with_ai():
-    """Generate realistic Slack conversations using OpenRouter Gemini 3 Flash with structured outputs."""
-    print("🤖 Generating conversations with Gemini 3 Flash (structured output)...")
+def get_github_context():
+    """Fetch recent commits, PRs, and issues from GitHub to provide context for AI."""
+    print("Fetching GitHub context...")
     
-    prompt = """Generate 20 realistic Slack channel messages for an engineering team support channel. 
+    # Try to get GitHub token from gh auth
+    gh_token = GITHUB_TOKEN
+    if not gh_token:
+        try:
+            result = subprocess.run(
+                ["gh", "auth", "token"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if result.returncode == 0:
+                gh_token = result.stdout.strip()
+                print("Using GitHub token from gh auth")
+        except (subprocess.TimeoutExpired, FileNotFoundError):
+            pass
+    
+    if not gh_token:
+        print("No GitHub token available, skipping GitHub context")
+        return None
+    
+    context = {}
+    headers = {"Authorization": f"Bearer {gh_token}"}
+    
+    try:
+        # Get recent commits
+        print("  Fetching recent commits...")
+        response = httpx.get(
+            "https://api.github.com/repos/echohello-dev/wingman/commits",
+            headers=headers,
+            params={"per_page": 10},
+            timeout=10
+        )
+        if response.status_code == 200:
+            commits = response.json()
+            context['commits'] = [
+                {
+                    "message": c.get('commit', {}).get('message', ''),
+                    "author": c.get('commit', {}).get('author', {}).get('name', 'Unknown'),
+                    "date": c.get('commit', {}).get('author', {}).get('date', '')
+                }
+                for c in commits[:5]
+            ]
+        
+        # Get recent PRs
+        print("  Fetching recent PRs...")
+        response = httpx.get(
+            "https://api.github.com/repos/echohello-dev/wingman/pulls",
+            headers=headers,
+            params={"state": "all", "per_page": 10},
+            timeout=10
+        )
+        if response.status_code == 200:
+            prs = response.json()
+            context['prs'] = [
+                {
+                    "title": pr.get('title', ''),
+                    "number": pr.get('number', 0),
+                    "state": pr.get('state', ''),
+                    "author": pr.get('user', {}).get('login', 'Unknown')
+                }
+                for pr in prs[:5]
+            ]
+        
+        # Get recent issues
+        print("  Fetching recent issues...")
+        response = httpx.get(
+            "https://api.github.com/repos/echohello-dev/wingman/issues",
+            headers=headers,
+            params={"state": "all", "per_page": 10},
+            timeout=10
+        )
+        if response.status_code == 200:
+            issues = response.json()
+            context['issues'] = [
+                {
+                    "title": i.get('title', ''),
+                    "number": i.get('number', 0),
+                    "state": i.get('state', ''),
+                    "labels": [l.get('name', '') for l in i.get('labels', [])]
+                }
+                for i in issues[:5]
+            ]
+        
+        print(f"GitHub context loaded: {len(context)} sections")
+        return context
+    except Exception as e:
+        print(f"Error fetching GitHub context: {e}")
+        return None
+
+
+def generate_messages_with_ai(github_context=None):
+    """Generate realistic Slack conversations using OpenRouter Gemini 3 Flash with structured outputs."""
+    print("Generating conversations with Gemini 3 Flash...")
+    
+    # Build prompt with GitHub context if available
+    base_prompt = """Generate 20 realistic Slack channel messages for an engineering team support channel. 
 Messages should include:
 - Technical questions and troubleshooting
 - Status updates and announcements
@@ -41,6 +138,25 @@ Messages should include:
 - Emoji use (minimal, natural)
 - Mix of quick questions, detailed issues, and team coordination
 - Each message has 0-3 replies"""
+
+    if github_context:
+        context_str = "Use this real project context when generating messages:\n"
+        if github_context.get('commits'):
+            context_str += "\nRecent commits:\n"
+            for c in github_context['commits'][:3]:
+                context_str += f"- {c['message'][:60]} (by {c['author']})\n"
+        if github_context.get('prs'):
+            context_str += "\nRecent PRs:\n"
+            for pr in github_context['prs'][:3]:
+                context_str += f"- #{pr['number']}: {pr['title']} ({pr['state']})\n"
+        if github_context.get('issues'):
+            context_str += "\nRecent issues:\n"
+            for issue in github_context['issues'][:3]:
+                context_str += f"- #{issue['number']}: {issue['title']} ({', '.join(issue['labels'])})\n"
+        
+        prompt = base_prompt + "\n\n" + context_str
+    else:
+        prompt = base_prompt
 
     # JSON Schema for structured output
     schema = {
@@ -110,22 +226,22 @@ Messages should include:
             try:
                 data = json.loads(content)
                 messages = data.get('messages', [])
-                print(f"✅ Generated {len(messages)} messages from Gemini 3 Flash")
+                print(f"Generated {len(messages)} messages from Gemini 3 Flash")
                 return messages
             except json.JSONDecodeError as e:
-                print(f"⚠️ Failed to parse JSON response: {e}")
+                print(f"Failed to parse JSON response: {e}")
                 print(f"   Content: {content[:200]}")
                 return None
         else:
             error_body = response.text
-            print(f"⚠️ AI generation failed: {response.status_code}")
+            print(f"AI generation failed: {response.status_code}")
             print(f"   Response: {error_body[:200]}")
             return None
     except httpx.TimeoutException:
-        print("⚠️ AI generation timed out (30s)")
+        print("AI generation timed out (30s)")
         return None
     except Exception as e:
-        print(f"⚠️ AI generation error: {e}")
+        print(f"AI generation error: {e}")
         return None
 
 
@@ -268,13 +384,14 @@ fallback_messages = [
 
 # Choose messages source
 if OPENROUTER_API_KEY:
-    generated = generate_messages_with_ai()
+    github_context = get_github_context()
+    generated = generate_messages_with_ai(github_context)
     messages = generated if generated else fallback_messages
 else:
-    print("⏭️ No OpenRouter API key found, using deterministic messages")
+    print("No OpenRouter API key found, using deterministic messages")
     messages = fallback_messages
 
-print(f"📤 Posting {len(messages)} realistic support messages...\n")
+print(f"Posting {len(messages)} realistic support messages...\n")
 
 success = 0
 total_posts = sum(1 + len(msg['replies']) for msg in messages)
@@ -324,7 +441,7 @@ for i, msg_data in enumerate(messages, 1):
     if result.get('ok'):
         posted_count += 1
         thread_ts = result['ts']
-        print(f"✅ Message {i}/{len(messages)} posted successfully")
+        print(f"Message {i}/{len(messages)} posted successfully")
         success += 1
         
         # Post replies if any
@@ -366,15 +483,15 @@ for i, msg_data in enumerate(messages, 1):
             
             if reply_response.json().get('ok'):
                 posted_count += 1
-                print(f"   ↳ Reply {reply_idx}/{len(msg_data['replies'])} posted")
+                print(f"   Reply {reply_idx}/{len(msg_data['replies'])} posted")
             else:
-                print(f"   ✗ Reply {reply_idx} failed: {reply_response.json().get('error')}")
+                print(f"   Reply {reply_idx} failed: {reply_response.json().get('error')}")
     else:
-        print(f"❌ Message {i}/{len(messages)} failed: {result.get('error')}")
+        print(f"Message {i}/{len(messages)} failed: {result.get('error')}")
     
     # Delay between main messages
     if i < len(messages):
         time.sleep(2)
 
-print(f"\n✨ Complete! {posted_count}/{total_posts} messages/replies posted successfully")
+print(f"\nComplete! {posted_count}/{total_posts} messages/replies posted successfully")
 print(f"\n✨ Complete! {posted_count}/{total_posts} messages/replies posted successfully")
