@@ -71,6 +71,7 @@ def parse_rich_text_from_string(text):
             r'(~)([^~]+?)\7|'  # ~strikethrough~
             r'(`)([^`]+?)\9|'  # `code`
             r'(<(https?://[^|>]+)(?:\|([^>]+))?[^<]*>)|'  # <url|label> or <url>
+            r'(https?://[^\s<>]+)|'  # Raw URLs (https://example.com/...)
             r'(:([a-z_0-9]+):)'  # :emoji_name:
         )
         
@@ -120,10 +121,30 @@ def parse_rich_text_from_string(text):
                     "url": url,
                     "text": label
                 })
-            elif match.group(15):  # :emoji:
+            elif match.group(14):  # Raw URL (https://...)
+                url = match.group(14)
+                # Extract GitHub issue/PR number if available
+                if 'github.com' in url:
+                    if '/pull/' in url or '/issues/' in url:
+                        # Extract just the repo and number for cleaner display
+                        parts = url.rstrip('/').split('/')
+                        if len(parts) >= 2:
+                            label = f"{parts[-2]}/{parts[-1]}"
+                        else:
+                            label = url
+                    else:
+                        label = url.split('/')[-1][:20]
+                else:
+                    label = url[:30] + ('...' if len(url) > 30 else '')
+                elements.append({
+                    "type": "link",
+                    "url": url,
+                    "text": label
+                })
+            elif match.group(16):  # :emoji:
                 elements.append({
                     "type": "emoji",
-                    "name": match.group(15)
+                    "name": match.group(16)
                 })
             
             pos = match.end()
@@ -166,8 +187,32 @@ def add_reaction(channel, timestamp, emoji):
         return False
 
 
+
+def get_user_repos(gh_token, max_repos=5):
+    """Fetch the authenticated user's repos, prioritizing recent activity."""
+    try:
+        # Get user's repos (owned and contributed to)
+        print("  Fetching user's repositories...")
+        response = httpx.get(
+            "https://api.github.com/user/repos",
+            headers={"Authorization": f"Bearer {gh_token}"},
+            params={"sort": "updated", "per_page": 20},
+            timeout=10
+        )
+        if response.status_code == 200:
+            repos = response.json()
+            # Get repo full names, sort by recent activity
+            repo_names = [r.get('full_name') for r in repos if r.get('full_name')]
+            print(f"  Found {len(repo_names)} user repos, using top {min(max_repos, len(repo_names))}")
+            return repo_names[:max_repos]
+    except Exception as e:
+        print(f"  Error fetching user repos: {e}")
+    
+    return []
+
+
 def get_github_context():
-    """Fetch recent commits, PRs, and issues from GitHub to provide context for AI."""
+    """Fetch recent commits, PRs, and issues from user's repositories."""
     print("Fetching GitHub context...")
     
     # Try to get GitHub token from gh auth
@@ -190,71 +235,94 @@ def get_github_context():
         print("No GitHub token available, skipping GitHub context")
         return None
     
-    context = {}
+    context = {
+        'commits': [],
+        'prs': [],
+        'issues': []
+    }
+    
     headers = {"Authorization": f"Bearer {gh_token}"}
     
     try:
-        # Get recent commits
-        print("  Fetching recent commits...")
-        response = httpx.get(
-            "https://api.github.com/repos/echohello-dev/wingman/commits",
-            headers=headers,
-            params={"per_page": 10},
-            timeout=10
-        )
-        if response.status_code == 200:
-            commits = response.json()
-            context['commits'] = [
-                {
-                    "message": c.get('commit', {}).get('message', ''),
-                    "author": c.get('commit', {}).get('author', {}).get('name', 'Unknown'),
-                    "date": c.get('commit', {}).get('author', {}).get('date', '')
-                }
-                for c in commits[:5]
-            ]
+        # Get user's repos (fallback to wingman if none found)
+        repos = get_user_repos(gh_token)
+        if not repos:
+            repos = ["echohello-dev/wingman"]
         
-        # Get recent PRs
-        print("  Fetching recent PRs...")
-        response = httpx.get(
-            "https://api.github.com/repos/echohello-dev/wingman/pulls",
-            headers=headers,
-            params={"state": "all", "per_page": 10},
-            timeout=10
-        )
-        if response.status_code == 200:
-            prs = response.json()
-            context['prs'] = [
-                {
-                    "title": pr.get('title', ''),
-                    "number": pr.get('number', 0),
-                    "state": pr.get('state', ''),
-                    "author": pr.get('user', {}).get('login', 'Unknown')
-                }
-                for pr in prs[:5]
-            ]
+        # Fetch data from multiple repos
+        for repo in repos:
+            try:
+                # Get recent commits
+                response = httpx.get(
+                    f"https://api.github.com/repos/{repo}/commits",
+                    headers=headers,
+                    params={"per_page": 5},
+                    timeout=10
+                )
+                if response.status_code == 200:
+                    commits = response.json()
+                    context['commits'].extend([
+                        {
+                            "message": c.get('commit', {}).get('message', ''),
+                            "author": c.get('commit', {}).get('author', {}).get('name', 'Unknown'),
+                            "repo": repo,
+                            "date": c.get('commit', {}).get('author', {}).get('date', '')
+                        }
+                        for c in commits[:3]
+                    ])
+                
+                # Get recent PRs
+                response = httpx.get(
+                    f"https://api.github.com/repos/{repo}/pulls",
+                    headers=headers,
+                    params={"state": "all", "per_page": 5},
+                    timeout=10
+                )
+                if response.status_code == 200:
+                    prs = response.json()
+                    context['prs'].extend([
+                        {
+                            "title": pr.get('title', ''),
+                            "number": pr.get('number', 0),
+                            "state": pr.get('state', ''),
+                            "repo": repo,
+                            "url": pr.get('html_url', ''),
+                            "author": pr.get('user', {}).get('login', 'Unknown')
+                        }
+                        for pr in prs[:3]
+                    ])
+                
+                # Get recent issues
+                response = httpx.get(
+                    f"https://api.github.com/repos/{repo}/issues",
+                    headers=headers,
+                    params={"state": "all", "per_page": 5},
+                    timeout=10
+                )
+                if response.status_code == 200:
+                    issues = response.json()
+                    context['issues'].extend([
+                        {
+                            "title": i.get('title', ''),
+                            "number": i.get('number', 0),
+                            "repo": repo,
+                            "url": i.get('html_url', ''),
+                            "labels": [l.get('name', '') for l in i.get('labels', [])]
+                        }
+                        for i in issues[:3] if not i.get('pull_request')  # Exclude PRs
+                    ])
+            except Exception as e:
+                print(f"  Error fetching data from {repo}: {e}")
+                continue
         
-        # Get recent issues
-        print("  Fetching recent issues...")
-        response = httpx.get(
-            "https://api.github.com/repos/echohello-dev/wingman/issues",
-            headers=headers,
-            params={"state": "all", "per_page": 10},
-            timeout=10
-        )
-        if response.status_code == 200:
-            issues = response.json()
-            context['issues'] = [
-                {
-                    "title": i.get('title', ''),
-                    "number": i.get('number', 0),
-                    "state": i.get('state', ''),
-                    "labels": [l.get('name', '') for l in i.get('labels', [])]
-                }
-                for i in issues[:5]
-            ]
+        # Trim to reasonable sizes
+        context['commits'] = context['commits'][:5]
+        context['prs'] = context['prs'][:5]
+        context['issues'] = context['issues'][:5]
         
-        print(f"GitHub context loaded: {len(context)} sections")
-        return context
+        print(f"GitHub context loaded from {len(repos)} repos")
+        return context if context['commits'] or context['prs'] or context['issues'] else None
+    
     except Exception as e:
         print(f"Error fetching GitHub context: {e}")
         return None
@@ -292,19 +360,28 @@ Example: "*Issue*: _Database timeout_ on <https://github.com|PR#123>. `SELECT` q
 """
 
     if github_context:
-        context_str = "Use this real project context when generating messages:\n"
+        context_str = "Use this real project context when generating messages. Reference actual repos, PRs, and issues:\n"
         if github_context.get('commits'):
-            context_str += "\nRecent commits:\n"
+            context_str += "\nRecent commits (repos touched):\n"
             for c in github_context['commits'][:3]:
-                context_str += f"- {c['message'][:60]} (by {c['author']})\n"
+                context_str += f"- {c['message'][:60]} ({c['repo']})\n"
         if github_context.get('prs'):
-            context_str += "\nRecent PRs:\n"
+            context_str += "\nRecent PRs to reference:\n"
             for pr in github_context['prs'][:3]:
-                context_str += f"- #{pr['number']}: {pr['title']} ({pr['state']})\n"
+                url = pr.get('url', '').replace('/api/v3/', '/')
+                context_str += f"- #{pr['number']}: {pr['title']} ({pr['state']}) - <{url}>\n"
         if github_context.get('issues'):
-            context_str += "\nRecent issues:\n"
+            context_str += "\nRecent issues to reference:\n"
             for issue in github_context['issues'][:3]:
-                context_str += f"- #{issue['number']}: {issue['title']} ({', '.join(issue['labels'])})\n"
+                url = issue.get('url', '').replace('/api/v3/', '/')
+                labels = ', '.join(issue['labels']) if issue['labels'] else 'no labels'
+                context_str += f"- #{issue['number']}: {issue['title']} ({labels}) - <{url}>\n"
+        
+        context_str += "\n\nWhen generating messages:\n"
+        context_str += "- Reference actual PR/issue numbers and URLs from the context above\n"
+        context_str += "- Use raw GitHub URLs like https://github.com/owner/repo/issues/123\n"
+        context_str += "- Include actual commit messages and PR titles from your repos\n"
+        context_str += "- Make questions/discussions specific to the repos and issues you actually work on\n"
         
         prompt = base_prompt + "\n\n" + context_str
     else:
