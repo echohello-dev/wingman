@@ -2,11 +2,14 @@
 Configuration management for Wingman backend
 """
 from pydantic_settings import BaseSettings
+from pydantic import ConfigDict
 from typing import Optional
 
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables"""
+    
+    model_config = ConfigDict(env_file=".env", case_sensitive=True)
     
     # Application
     APP_NAME: str = "Wingman"
@@ -49,10 +52,6 @@ class Settings(BaseSettings):
     # Conversation Memory
     CONVERSATION_MEMORY_WINDOW: int = 10  # Number of recent messages to include
     CONVERSATION_TIMEOUT_MINUTES: int = 30  # How long to consider a conversation active
-    
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
 
 
 settings = Settings()

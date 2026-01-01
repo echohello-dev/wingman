@@ -1,5 +1,5 @@
 [tools]
-python = "3.14"
+python = "3.13"
 node = "24"
 bun = "1.3.5"
 uv = "0.9.21"
@@ -185,3 +185,20 @@ run = "uv run sync_tf_vars.py"
 description = "Load environment variables from Terraform Cloud into .env"
 dir = "scripts"
 run = "uv run load_tf_vars.py"
+
+[tasks.tf-oauth-url]
+description = "Display OAuth URL and open in browser to install app to workspace"
+dir = "terraform"
+run = """
+echo "🔗 Slack App OAuth Installation URL:"
+echo ""
+URL=$(terraform output -raw oauth_authorize_url 2>/dev/null)
+if [ -z "$URL" ]; then
+  echo "❌ OAuth URL not found. Run 'mise run tf-apply' first."
+  exit 1
+fi
+echo "$URL"
+echo ""
+echo "Opening in browser..."
+open "$URL" 2>/dev/null || xdg-open "$URL" 2>/dev/null || echo "Please open the URL above manually."
+"""
