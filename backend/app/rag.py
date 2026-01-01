@@ -1,15 +1,15 @@
 """
 RAG (Retrieval Augmented Generation) implementation
 """
-from langchain.chains import RetrievalQA
-from langchain.prompts import PromptTemplate
-from langchain_openai import ChatOpenAI
-from typing import Dict, Any, List, Optional
-from datetime import datetime, timedelta
-from app.config import settings
-from app.vector_store import vector_store
-from app.database import SessionLocal, ConversationHistory
 import logging
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
+
+from app.config import settings
+from app.database import ConversationHistory, SessionLocal
+from app.vector_store import vector_store
+from langchain_core.prompts import PromptTemplate
+from langchain_openai import ChatOpenAI
 
 logger = logging.getLogger(__name__)
 

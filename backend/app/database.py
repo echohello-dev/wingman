@@ -23,7 +23,7 @@ class SlackMessage(Base):
     user_id = Column(String, index=True)
     text = Column(Text)
     thread_ts = Column(String, index=True, nullable=True)
-    metadata = Column(JSON, nullable=True)
+    msg_metadata = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -36,7 +36,7 @@ class Document(Base):
     title = Column(String, index=True)
     content = Column(Text)
     source = Column(String)
-    metadata = Column(JSON, nullable=True)
+    doc_metadata = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
