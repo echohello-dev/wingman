@@ -37,6 +37,15 @@ mise run shell-db       # psql into postgres
 
 **API routes** in `app/main.py`: `/api/ask`, `/api/documents`, `/api/messages`
 
+**File uploads**: Bot automatically indexes files shared in Slack (txt, md, pdf, docx, code files)
+
+**Tech Stack**:
+- **httpx** — Async HTTP client for file downloads
+- **pypdf** + **python-docx** — PDF and Word document extraction
+- **LangChain** — RAG orchestration
+- **Chroma** — Vector embeddings and semantic search
+- **SQLAlchemy** — ORM with PostgreSQL
+
 ## Frontend (`/frontend`)
 
 - Package manager: **Bun**
