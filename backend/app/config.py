@@ -21,9 +21,9 @@ class Settings(BaseSettings):
     PORT: int = 8000
     
     # Slack Configuration
-    SLACK_BOT_TOKEN: str  # xoxb-* token
+    SLACK_BOT_TOKEN: str = ""  # xoxb-* token
     SLACK_APP_TOKEN: Optional[str] = None  # xapp-* token for Socket Mode
-    SLACK_SIGNING_SECRET: str
+    SLACK_SIGNING_SECRET: str = ""
     SLACK_USER_TOKEN: Optional[str] = None  # xoxp-* token for user actions
     SLACK_CLIENT_ID: Optional[str] = None
     SLACK_CLIENT_SECRET: Optional[str] = None
