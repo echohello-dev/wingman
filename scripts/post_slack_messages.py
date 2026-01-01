@@ -6,29 +6,68 @@ Can optionally use GitHub context (commits, PRs, issues) to make messages more r
 Includes message formatting (bold, links, emojis, lists) and reactions.
 """
 import json
+import logging
 import re
 import subprocess
+import sys
 import time
 import uuid
 
 import httpx
 from dotenv import dotenv_values
+from rich.console import Console
+from rich.logging import RichHandler
+from rich.panel import Panel
+from rich.progress import (BarColumn, Progress, SpinnerColumn,
+                           TaskProgressColumn, TextColumn)
+
+# ============================================================================
+# Rich Console & Logging Configuration
+# ============================================================================
+
+console = Console()
+
+# Configure logging with Rich handler
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(message)s",
+    datefmt="[%X]",
+    handlers=[RichHandler(console=console, rich_tracebacks=True, show_path=False)]
+)
+
+logger = logging.getLogger(__name__)
+
+# Disable httpx logging to reduce noise
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 # Load config
-config = dotenv_values("/Users/johnny/projects/github.com/echohello-dev/wingman/.env")
-
-XOXC_TOKEN = config['SLACK_XOXC_TOKEN']
-XOXD_TOKEN = config['SLACK_XOXD_TOKEN']
-SLACK_ORG_URL = config.get('SLACK_ORG_URL')
-CHANNEL = config.get('SLACK_CHANNEL_ID')
-TEAM_ID = config.get('SLACK_TEAM_ID')
-OPENROUTER_API_KEY = config.get('OPENROUTER_API_KEY')
-GITHUB_TOKEN = config.get('GITHUB_TOKEN')
+with console.status("[bold blue]Loading environment configuration...", spinner="dots"):
+    config = dotenv_values("/Users/johnny/projects/github.com/echohello-dev/wingman/.env")
+    
+    XOXC_TOKEN = config['SLACK_XOXC_TOKEN']
+    XOXD_TOKEN = config['SLACK_XOXD_TOKEN']
+    SLACK_ORG_URL = config.get('SLACK_ORG_URL')
+    CHANNEL = config.get('SLACK_CHANNEL_ID')
+    TEAM_ID = config.get('SLACK_TEAM_ID')
+    OPENROUTER_API_KEY = config.get('OPENROUTER_API_KEY')
+    GITHUB_TOKEN = config.get('GITHUB_TOKEN')
+    time.sleep(0.2)  # Brief pause for visual effect
 
 if not XOXC_TOKEN or not XOXD_TOKEN or not SLACK_ORG_URL or not CHANNEL or not TEAM_ID:
-    print("Missing required env vars: SLACK_XOXC_TOKEN, SLACK_XOXD_TOKEN, SLACK_ORG_URL, SLACK_CHANNEL_ID, SLACK_TEAM_ID")
-    import sys
+    console.print("[bold red]✗ Missing required environment variables:[/bold red]")
+    if not XOXC_TOKEN:
+        console.print("  [red]- SLACK_XOXC_TOKEN[/red]")
+    if not XOXD_TOKEN:
+        console.print("  [red]- SLACK_XOXD_TOKEN[/red]")
+    if not SLACK_ORG_URL:
+        console.print("  [red]- SLACK_ORG_URL[/red]")
+    if not CHANNEL:
+        console.print("  [red]- SLACK_CHANNEL_ID[/red]")
+    if not TEAM_ID:
+        console.print("  [red]- SLACK_TEAM_ID[/red]")
     sys.exit(1)
+
+console.print("[bold green]✓ All required environment variables loaded[/bold green]")
 
 
 def parse_rich_text_from_string(text):
@@ -192,7 +231,7 @@ def get_user_repos(gh_token, max_repos=5):
     """Fetch the authenticated user's repos, prioritizing recent activity."""
     try:
         # Get user's repos (owned and contributed to)
-        print("  Fetching user's repositories...")
+        logger.debug(f"Fetching user's repositories (top {max_repos})...")
         response = httpx.get(
             "https://api.github.com/user/repos",
             headers={"Authorization": f"Bearer {gh_token}"},
@@ -203,22 +242,30 @@ def get_user_repos(gh_token, max_repos=5):
             repos = response.json()
             # Get repo full names, sort by recent activity
             repo_names = [r.get('full_name') for r in repos if r.get('full_name')]
-            print(f"  Found {len(repo_names)} user repos, using top {min(max_repos, len(repo_names))}")
-            return repo_names[:max_repos]
+            selected = repo_names[:max_repos]
+            console.print(f"[bold green]✓ Found {len(repo_names)} user repos, using top {len(selected)}[/bold green]")
+            for i, repo in enumerate(selected, 1):
+                console.print(f"  [cyan][{i}][/cyan] {repo}")
+            return selected
+        else:
+            logger.warning(f"GitHub API returned status {response.status_code}")
+    except httpx.TimeoutException:
+        logger.error("Timeout fetching user repos from GitHub")
     except Exception as e:
-        print(f"  Error fetching user repos: {e}")
+        logger.error(f"Error fetching user repos: {type(e).__name__}: {e}")
     
     return []
 
 
 def get_github_context():
     """Fetch recent commits, PRs, and issues from user's repositories."""
-    print("Fetching GitHub context...")
+    console.print("\n[bold blue]━━━ GitHub Context ━━━[/bold blue]")
     
     # Try to get GitHub token from gh auth
     gh_token = GITHUB_TOKEN
     if not gh_token:
         try:
+            logger.debug("GITHUB_TOKEN not set, attempting to get from 'gh auth token'...")
             result = subprocess.run(
                 ["gh", "auth", "token"],
                 capture_output=True,
@@ -227,12 +274,18 @@ def get_github_context():
             )
             if result.returncode == 0:
                 gh_token = result.stdout.strip()
-                print("Using GitHub token from gh auth")
-        except (subprocess.TimeoutExpired, FileNotFoundError):
-            pass
+                console.print("[bold green]✓ Using GitHub token from 'gh auth token'[/bold green]")
+            else:
+                logger.warning("'gh auth token' failed with return code {result.returncode}")
+        except subprocess.TimeoutExpired:
+            logger.error("Timeout running 'gh auth token'")
+        except FileNotFoundError:
+            logger.error("'gh' command not found. Install GitHub CLI or set GITHUB_TOKEN env var")
+    else:
+        logger.debug("Using GITHUB_TOKEN from environment")
     
     if not gh_token:
-        print("No GitHub token available, skipping GitHub context")
+        logger.warning("No GitHub token available, skipping GitHub context")
         return None
     
     context = {
@@ -247,11 +300,16 @@ def get_github_context():
         # Get user's repos (fallback to wingman if none found)
         repos = get_user_repos(gh_token)
         if not repos:
+            logger.warning("No user repos found, falling back to echohello-dev/wingman")
             repos = ["echohello-dev/wingman"]
         
+        logger.info(f"Fetching context from {len(repos)} repositories...")
+        
         # Fetch data from multiple repos
-        for repo in repos:
+        for repo_idx, repo in enumerate(repos, 1):
             try:
+                logger.debug(f"  [{repo_idx}/{len(repos)}] Processing {repo}...")
+                
                 # Get recent commits
                 response = httpx.get(
                     f"https://api.github.com/repos/{repo}/commits",
@@ -261,6 +319,7 @@ def get_github_context():
                 )
                 if response.status_code == 200:
                     commits = response.json()
+                    fetched = len(commits[:3])
                     context['commits'].extend([
                         {
                             "message": c.get('commit', {}).get('message', ''),
@@ -270,6 +329,9 @@ def get_github_context():
                         }
                         for c in commits[:3]
                     ])
+                    logger.debug(f"    ✓ Fetched {fetched} commits")
+                else:
+                    logger.debug(f"    ⚠ Commits API returned {response.status_code}")
                 
                 # Get recent PRs
                 response = httpx.get(
@@ -280,6 +342,7 @@ def get_github_context():
                 )
                 if response.status_code == 200:
                     prs = response.json()
+                    fetched = len(prs[:3])
                     context['prs'].extend([
                         {
                             "title": pr.get('title', ''),
@@ -291,6 +354,9 @@ def get_github_context():
                         }
                         for pr in prs[:3]
                     ])
+                    logger.debug(f"    ✓ Fetched {fetched} PRs")
+                else:
+                    logger.debug(f"    ⚠ PRs API returned {response.status_code}")
                 
                 # Get recent issues
                 response = httpx.get(
@@ -301,6 +367,8 @@ def get_github_context():
                 )
                 if response.status_code == 200:
                     issues = response.json()
+                    issues_filtered = [i for i in issues[:3] if not i.get('pull_request')]
+                    fetched = len(issues_filtered)
                     context['issues'].extend([
                         {
                             "title": i.get('title', ''),
@@ -309,10 +377,17 @@ def get_github_context():
                             "url": i.get('html_url', ''),
                             "labels": [l.get('name', '') for l in i.get('labels', [])]
                         }
-                        for i in issues[:3] if not i.get('pull_request')  # Exclude PRs
+                        for i in issues_filtered
                     ])
+                    logger.debug(f"    ✓ Fetched {fetched} issues")
+                else:
+                    logger.debug(f"    ⚠ Issues API returned {response.status_code}")
+                    
+            except httpx.TimeoutException:
+                logger.error(f"  Timeout fetching data from {repo}")
+                continue
             except Exception as e:
-                print(f"  Error fetching data from {repo}: {e}")
+                logger.error(f"  Error fetching data from {repo}: {type(e).__name__}: {e}")
                 continue
         
         # Trim to reasonable sizes
@@ -320,17 +395,18 @@ def get_github_context():
         context['prs'] = context['prs'][:5]
         context['issues'] = context['issues'][:5]
         
-        print(f"GitHub context loaded from {len(repos)} repos")
+        total = len(context['commits']) + len(context['prs']) + len(context['issues'])
+        logger.info(f"✓ GitHub context loaded: {len(context['commits'])} commits, {len(context['prs'])} PRs, {len(context['issues'])} issues")
         return context if context['commits'] or context['prs'] or context['issues'] else None
     
     except Exception as e:
-        print(f"Error fetching GitHub context: {e}")
+        logger.error(f"Error fetching GitHub context: {type(e).__name__}: {e}")
         return None
 
 
 def generate_messages_with_ai(github_context=None):
     """Generate realistic Slack conversations using OpenRouter Gemini 3 Flash with structured outputs."""
-    print("Generating conversations with Gemini 3 Flash...")
+    logger.info("Generating conversations with Gemini 3 Flash...")
     
     # Build prompt with GitHub context if available
     base_prompt = """Generate 20 realistic Slack channel messages for an engineering team support channel. 
@@ -384,8 +460,10 @@ Example: "*Issue*: _Database timeout_ on <https://github.com|PR#123>. `SELECT` q
         context_str += "- Make questions/discussions specific to the repos and issues you actually work on\n"
         
         prompt = base_prompt + "\n\n" + context_str
+        logger.debug("AI prompt includes GitHub context")
     else:
         prompt = base_prompt
+        logger.debug("AI prompt using default template (no GitHub context)")
 
     # JSON Schema for structured output
     schema = {
@@ -417,7 +495,8 @@ Example: "*Issue*: _Database timeout_ on <https://github.com|PR#123>. `SELECT` q
     }
 
     try:
-        response = httpx.post(
+        with console.status("[bold magenta]Generating messages with Gemini 3 Flash...", spinner="dots"):
+            response = httpx.post(
             "https://openrouter.ai/api/v1/chat/completions",
             headers={
                 "Authorization": f"Bearer {OPENROUTER_API_KEY}",
@@ -444,8 +523,8 @@ Example: "*Issue*: _Database timeout_ on <https://github.com|PR#123>. `SELECT` q
                     }
                 }
             },
-            timeout=30.0
-        )
+                timeout=30
+                )
         
         if response.status_code == 200:
             result = response.json()
@@ -455,22 +534,22 @@ Example: "*Issue*: _Database timeout_ on <https://github.com|PR#123>. `SELECT` q
             try:
                 data = json.loads(content)
                 messages = data.get('messages', [])
-                print(f"Generated {len(messages)} messages from Gemini 3 Flash")
+                logger.info(f"✓ Generated {len(messages)} messages from Gemini 3 Flash")
                 return messages
             except json.JSONDecodeError as e:
-                print(f"Failed to parse JSON response: {e}")
-                print(f"   Content: {content[:200]}")
+                logger.error(f"Failed to parse JSON response: {type(e).__name__}: {e}")
+                logger.debug(f"   Content: {content[:200]}")
                 return None
         else:
             error_body = response.text
-            print(f"AI generation failed: {response.status_code}")
-            print(f"   Response: {error_body[:200]}")
+            logger.error(f"AI generation failed: HTTP {response.status_code}")
+            logger.debug(f"   Response: {error_body[:200]}")
             return None
     except httpx.TimeoutException:
-        print("AI generation timed out (30s)")
+        logger.error("AI generation timed out (30s)")
         return None
     except Exception as e:
-        print(f"AI generation error: {e}")
+        logger.error(f"AI generation error: {type(e).__name__}: {e}")
         return None
 
 
@@ -616,124 +695,163 @@ if OPENROUTER_API_KEY:
     github_context = get_github_context()
     generated = generate_messages_with_ai(github_context)
     messages = generated if generated else fallback_messages
+    if not generated:
+        logger.warning("AI generation failed, falling back to default messages")
 else:
-    print("No OpenRouter API key found, using deterministic messages")
+    logger.warning("OPENROUTER_API_KEY not set, using default fallback messages")
     messages = fallback_messages
 
-print(f"Posting {len(messages)} realistic support messages...\n")
+total_posts = sum(1 + len(msg['replies']) for msg in messages)
+console.print(f"\n[bold blue]━━━ Posting Messages ━━━[/bold blue]")
+console.print(Panel.fit(
+    f"[bold cyan]{len(messages)}[/bold cyan] messages\n[bold cyan]{total_posts}[/bold cyan] total posts (including replies)",
+    title="[bold]Slack Post Summary[/bold]",
+    border_style="blue"
+))
 
 success = 0
-total_posts = sum(1 + len(msg['replies']) for msg in messages)
+failed = 0
 posted_count = 0
 
-for i, msg_data in enumerate(messages, 1):
-    text = msg_data['text']
+# Use Progress bar for message posting
+with Progress(
+    SpinnerColumn(),
+    TextColumn("[progress.description]{task.description}"),
+    BarColumn(),
+    TaskProgressColumn(),
+    console=console
+) as progress:
+    task = progress.add_task(f"[green]Posting messages...", total=len(messages))
     
-    # Parse formatting and create rich text elements
-    elements = parse_rich_text_from_string(text)
-    
-    # Create rich text blocks with formatted elements
-    blocks = [{
-        "type": "rich_text",
-        "elements": [{
-            "type": "rich_text_section",
-            "elements": elements
-        }]
-    }]
-    
-    # Match browser's exact form data
-    data = {
-        'token': XOXC_TOKEN,
-        'channel': CHANNEL,
-        'type': 'message',
-        'xArgs': '{}',
-        'unfurl': '[]',
-        'client_context_team_id': TEAM_ID,
-        'blocks': json.dumps(blocks),
-        'include_channel_perm_error': 'true',
-        'client_msg_id': str(uuid.uuid4()),
-        '_x_reason': 'webapp_message_send',
-        '_x_mode': 'online',
-        '_x_sonic': 'true',
-        '_x_app_name': 'client'
-    }
-    
-    cookies = {'d': XOXD_TOKEN}
-    headers = {'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'}
-    
-    response = httpx.post(
-        f'{SLACK_ORG_URL}/api/chat.postMessage',
-        data=data,
-        cookies=cookies,
-        headers=headers
-    )
-    
-    result = response.json()
-    
-    if result.get('ok'):
-        posted_count += 1
-        thread_ts = result['ts']
-        print(f"Message {i}/{len(messages)} posted successfully")
-        success += 1
+    for i, msg_data in enumerate(messages, 1):
+        progress.update(task, description=f"[green]Message {i}/{len(messages)}")
+        text = msg_data['text']
         
-        # Extract emoji from message and add as reaction (optional)
-        emoji_match = re.search(r':([a-z_0-9]+):', text)
-        if emoji_match:
-            emoji_name = emoji_match.group(1)
-            time.sleep(0.5)
-            add_reaction(CHANNEL, thread_ts, emoji_name)
-        
-        # Post replies if any
-        for reply_idx, reply_text in enumerate(msg_data['replies'], 1):
-            time.sleep(1)  # Small delay between replies
-            
-            # Parse reply formatting
-            reply_elements = parse_rich_text_from_string(reply_text)
-            
-            reply_blocks = [{
-                "type": "rich_text",
-                "elements": [{
-                    "type": "rich_text_section",
-                    "elements": reply_elements
-                }]
+        # Parse formatting and create rich text elements
+        elements = parse_rich_text_from_string(text)
+    
+        # Create rich text blocks with formatted elements
+        blocks = [{
+            "type": "rich_text",
+            "elements": [{
+                "type": "rich_text_section",
+                "elements": elements
             }]
-            
-            reply_data = {
-                'token': XOXC_TOKEN,
-                'channel': CHANNEL,
-                'type': 'message',
-                'xArgs': '{}',
-                'reply_broadcast': 'false',
-                'thread_ts': thread_ts,
-                'unfurl': '[]',
-                'client_context_team_id': TEAM_ID,
-                'blocks': json.dumps(reply_blocks),
-                'include_channel_perm_error': 'true',
-                'client_msg_id': str(uuid.uuid4()),
-                '_x_reason': 'webapp_message_send',
-                '_x_mode': 'online',
-                '_x_sonic': 'true',
-                '_x_app_name': 'client'
-            }
-            
-            reply_response = httpx.post(
+        }]
+        
+        # Match browser's exact form data
+        data = {
+            'token': XOXC_TOKEN,
+            'channel': CHANNEL,
+            'type': 'message',
+            'xArgs': '{}',
+            'unfurl': '[]',
+            'client_context_team_id': TEAM_ID,
+            'blocks': json.dumps(blocks),
+            'include_channel_perm_error': 'true',
+            'client_msg_id': str(uuid.uuid4()),
+            '_x_reason': 'webapp_message_send',
+            '_x_mode': 'online',
+            '_x_sonic': 'true',
+            '_x_app_name': 'client'
+        }
+        
+        cookies = {'d': XOXD_TOKEN}
+        headers = {'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'}
+        
+        try:
+            response = httpx.post(
                 f'{SLACK_ORG_URL}/api/chat.postMessage',
-                data=reply_data,
+                data=data,
                 cookies=cookies,
-                headers=headers
+                headers=headers,
+                timeout=10
             )
             
-            if reply_response.json().get('ok'):
+            result = response.json()
+            
+            if result.get('ok'):
                 posted_count += 1
-                print(f"   Reply {reply_idx}/{len(msg_data['replies'])} posted")
+                thread_ts = result['ts']
+                success += 1
+                
+                # Extract emoji from message and add as reaction (optional)
+                emoji_match = re.search(r':([a-z_0-9]+):', text)
+                if emoji_match:
+                    emoji_name = emoji_match.group(1)
+                    time.sleep(0.5)
+                    add_reaction(CHANNEL, thread_ts, emoji_name)
+                
+                # Post replies if any
+                if 'replies' in msg_data:
+                    for reply_idx, reply_text in enumerate(msg_data['replies'], 1):
+                        time.sleep(1)  # Small delay between replies
+                        
+                        # Parse reply formatting
+                        reply_elements = parse_rich_text_from_string(reply_text)
+                        
+                        reply_blocks = [{
+                            "type": "rich_text",
+                            "elements": [{
+                                "type": "rich_text_section",
+                                "elements": reply_elements
+                            }]
+                        }]
+                        
+                        reply_data = {
+                            'token': XOXC_TOKEN,
+                            'channel': CHANNEL,
+                            'type': 'message',
+                            'xArgs': '{}',
+                            'reply_broadcast': 'false',
+                            'thread_ts': thread_ts,
+                            'unfurl': '[]',
+                            'client_context_team_id': TEAM_ID,
+                            'blocks': json.dumps(reply_blocks),
+                            'include_channel_perm_error': 'true',
+                            'client_msg_id': str(uuid.uuid4()),
+                            '_x_reason': 'webapp_message_send',
+                            '_x_mode': 'online',
+                            '_x_sonic': 'true',
+                            '_x_app_name': 'client'
+                        }
+                        
+                        reply_response = httpx.post(
+                            f'{SLACK_ORG_URL}/api/chat.postMessage',
+                            data=reply_data,
+                            cookies=cookies,
+                            headers=headers,
+                            timeout=10
+                        )
+                        
+                        reply_result = reply_response.json()
+                        if reply_result.get('ok'):
+                            posted_count += 1
+                            success += 1
+                        else:
+                            logger.error(f"Reply {reply_idx} failed: {reply_result.get('error', 'Unknown error')}")
+                            failed += 1
             else:
-                print(f"   Reply {reply_idx} failed: {reply_response.json().get('error')}")
-    else:
-        print(f"Message {i}/{len(messages)} failed: {result.get('error')}")
-    
-    # Delay between main messages
-    if i < len(messages):
-        time.sleep(2)
+                logger.error(f"Message {i} failed: {result.get('error', 'Unknown error')}")
+                failed += 1
+        
+        except Exception as e:
+            logger.error(f"Message {i} error: {type(e).__name__}: {e}")
+            failed += 1
+        
+        progress.advance(task)
+        
+        # Delay between main messages
+        if i < len(messages):
+            time.sleep(2)
 
-print(f"\nComplete! {posted_count}/{total_posts} messages/replies posted successfully")
-print(f"\n✨ Complete! {posted_count}/{total_posts} messages/replies posted successfully")
+# Final summary panel
+console.print("\n")
+console.print(Panel.fit(
+    f"[bold green]✓ {success} successful[/bold green]\n"
+    f"[bold red]✗ {failed} failed[/bold red]\n"
+    f"[bold cyan]{posted_count}/{total_posts} total posts[/bold cyan]",
+    title="[bold]Completion Summary[/bold]",
+    border_style="green" if failed == 0 else "yellow"
+))
+))
