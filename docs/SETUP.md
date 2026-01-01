@@ -67,18 +67,19 @@ Follow [terraform.md](terraform.md) for complete setup:
 mise run tf-init
 mise run tf-plan
 mise run tf-apply
-
-# IMPORTANT: Install app to workspace and get tokens manually
-# 1. Go to https://api.slack.com/apps
-# 2. Select your Wingman app
-# 3. Click "Install to Workspace" button → Click "Allow"
-# 4. Get Bot Token: Go to "OAuth & Permissions" → Copy "Bot User OAuth Token" (xoxb-...)
-# 5. Get App Token: Go to "Basic Information" → "App-Level Tokens" → Click "Generate Token and Scopes"
-#    - Give it a name (e.g., "Socket Mode")
-#    - Add scope: connections:write
-#    - Click "Generate" → Copy the token (xapp-...)
-# 6. Get Signing Secret: Go to "Basic Information" → Copy "Signing Secret"
 ```
+
+**IMPORTANT: Install app to workspace and get tokens manually**
+
+1. Go to [api.slack.com/apps](https://api.slack.com/apps)
+2. Select your Wingman app
+3. Click **"Install to Workspace"** button → Click **"Allow"**
+4. **Get Bot Token**: Go to **OAuth & Permissions** → Copy **"Bot User OAuth Token"** (xoxb-...)
+5. **Get App Token**: Go to **Basic Information** → **App-Level Tokens** → Click **"Generate Token and Scopes"**
+   - Give it a name (e.g., "Socket Mode")
+   - Add scope: `connections:write`
+   - Click **"Generate"** → Copy the token (xapp-...)
+6. **Get Signing Secret**: Go to **Basic Information** → Copy **"Signing Secret"**
 
 Edit `.env` and add all three tokens:
 
