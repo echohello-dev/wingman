@@ -210,7 +210,7 @@ def add_reaction(channel, timestamp, emoji):
         'name': emoji,
     }
     
-    cookies = {'d': XOXD_TOKEN}
+    cookies = {k: v for k, v in {'d': XOXD_TOKEN}.items() if v is not None}
     headers = {'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'}
     
     try:
@@ -756,7 +756,7 @@ with Progress(
             '_x_app_name': 'client'
         }
         
-        cookies = {'d': XOXD_TOKEN}
+        cookies = {k: v for k, v in {'d': XOXD_TOKEN}.items() if v is not None}
         headers = {'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'}
         
         try:
@@ -819,7 +819,7 @@ with Progress(
                         reply_response = httpx.post(
                             f'{SLACK_ORG_URL}/api/chat.postMessage',
                             data=reply_data,
-                            cookies=cookies,
+                            cookies={k: v for k, v in {'d': XOXD_TOKEN}.items() if v is not None},
                             headers=headers,
                             timeout=10
                         )
@@ -853,5 +853,4 @@ console.print(Panel.fit(
     f"[bold cyan]{posted_count}/{total_posts} total posts[/bold cyan]",
     title="[bold]Completion Summary[/bold]",
     border_style="green" if failed == 0 else "yellow"
-))
 ))
