@@ -1,10 +1,12 @@
 """
 Database models and connection management
 """
-from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, JSON
-from sqlalchemy.orm import declarative_base, sessionmaker
 from datetime import datetime
+
 from app.config import settings
+from sqlalchemy import (JSON, Column, DateTime, Integer, String, Text,
+                        create_engine)
+from sqlalchemy.orm import declarative_base, sessionmaker
 
 # Create SQLAlchemy engine
 engine = create_engine(settings.DATABASE_URL, echo=settings.DEBUG)
@@ -64,5 +66,9 @@ def get_db():
 
 
 def init_db():
-    """Initialize database tables"""
+    """Initialize database tables
+    
+    Note: With Alembic migrations, this is only used as a fallback.
+    In production, use 'alembic upgrade head' to create tables.
+    """
     Base.metadata.create_all(bind=engine)

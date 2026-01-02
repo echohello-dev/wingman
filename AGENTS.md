@@ -22,6 +22,12 @@ mise run dev-backend    # Local backend with reload
 mise run dev-bot        # Local Slack bot
 mise run test-backend   # pytest via uv
 mise run shell-db       # psql into postgres
+
+# Database migrations
+mise run migrate        # Apply all pending migrations
+mise run migrate-down   # Rollback last migration
+mise run migrate-history # Show migration history
+mise run migrate-current # Show current version
 ```
 
 ## Backend (`/backend`)
@@ -34,6 +40,12 @@ mise run shell-db       # psql into postgres
 - `slack_bot` from `app.slack_bot`
 
 **Database**: `app/database.py` — use `get_db()` as FastAPI dependency
+
+**Migrations**: Alembic manages schema changes
+- `mise run migrate` applies pending migrations
+- Create new migrations: `MIGRATION_MESSAGE="description" mise run migrate-create` (requires running DB)
+- Migration files in `backend/migrations/versions/`
+- Don't use `Base.metadata.create_all()` in production — use migrations
 
 **API routes** in `app/main.py`: `/api/ask`, `/api/documents`, `/api/messages`
 

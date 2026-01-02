@@ -53,6 +53,31 @@ description = "Run backend tests"
 dir = "backend"
 run = "uv run pytest tests/test_file_extraction_units.py -v"
 
+[tasks.migrate]
+description = "Run database migrations (upgrade to latest)"
+dir = "backend"
+run = "uv run alembic upgrade head"
+
+[tasks.migrate-down]
+description = "Rollback last migration"
+dir = "backend"
+run = "uv run alembic downgrade -1"
+
+[tasks.migrate-create]
+description = "Create a new migration (requires DATABASE_URL)"
+dir = "backend"
+run = "uv run alembic revision --autogenerate -m \"$MIGRATION_MESSAGE\""
+
+[tasks.migrate-history]
+description = "Show migration history"
+dir = "backend"
+run = "uv run alembic history"
+
+[tasks.migrate-current]
+description = "Show current migration version"
+dir = "backend"
+run = "uv run alembic current"
+
 [tasks.test-frontend]
 description = "Run frontend tests"
 dir = "frontend"
