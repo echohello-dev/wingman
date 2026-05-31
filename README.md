@@ -1,6 +1,13 @@
 # Wingman
 
-AI-powered Slack support assistant with RAG capabilities. Answers questions using your indexed documents via LangChain and OpenRouter/OpenAI.
+AI-powered Slack support assistant with RAG capabilities and **AI streaming with thinking steps**. Watch the bot's reasoning process in real-time as it searches knowledge bases and generates responses.
+
+## Features
+
+- **AI Streaming**: See the bot think in real-time with Thinking Steps
+- **RAG-powered Answers**: Uses indexed documents via LangChain + ChromaDB
+- **Multi-channel Support**: DMs, mentions, slash commands
+- **Document Indexing**: Auto-index files shared in Slack
 
 ## Quick Start
 
@@ -14,7 +21,23 @@ docker compose up -d
 
 Access: [Backend](http://localhost:8000) • [Dashboard](http://localhost:3000) • [API Docs](http://localhost:8000/docs)
 
-See [docs/setup.md](docs/setup.md) and [docs/getting-started.md](docs/getting-started.md) for detailed setup.
+## Test It
+
+In Slack:
+- **DM**: Send a message to @Wingman
+- **Mention**: `@Wingman what's up?`
+- **Command**: `/wingman hello`
+
+You'll see streaming thinking steps as the bot processes your request.
+
+## Documentation
+
+| Guide | Purpose |
+|-------|---------|
+| [Getting Started](docs/getting-started.md) | Quick start |
+| [Local Development](docs/local-development.md) | Run locally with streaming |
+| [Setup Guide](docs/setup.md) | Full deployment |
+| [Slack Auth](docs/slack-auth.md) | Token reference |
 
 ## Architecture
 
