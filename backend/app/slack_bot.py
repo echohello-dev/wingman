@@ -12,7 +12,7 @@ from app.rag import rag_engine
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from slack_sdk import WebClient
-from slack_sdk.models.blocks import (
+from slack_sdk.models.messages.chunk import (
     MarkdownTextChunk,
     TaskUpdateChunk,
     PlanUpdateChunk,
