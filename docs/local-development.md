@@ -183,9 +183,82 @@ If ports 5432 or 8001 are in use:
 # Edit docker-compose.yaml to change ports
 ```
 
+## Mise Commands Reference
+
+Wingman uses [mise](https://mise.jdx.dev/) for task management. All tasks are defined in `mise.toml`.
+
+### Docker Services
+
+```bash
+mise run up              # Start all services
+mise run down            # Stop all services
+mise run restart         # Restart all services
+mise run ps              # Show running services
+mise run logs            # Tail all logs
+mise run logs-bot        # Tail bot logs
+mise run logs-backend    # Tail backend logs
+mise run logs-frontend   # Tail frontend logs
+mise run clean           # Remove containers and volumes
+```
+
+### Local Development
+
+```bash
+mise run dev-backend     # Run backend API locally (port 8000)
+mise run dev-bot         # Run bot locally (with streaming)
+mise run dev-frontend    # Run frontend locally (port 3000)
+```
+
+### Dependencies
+
+```bash
+mise run install         # Install all dependencies
+mise run install-backend # Install backend deps (uv sync)
+mise run install-frontend # Install frontend deps (bun install)
+```
+
+### Database
+
+```bash
+mise run migrate              # Run pending migrations
+mise run migrate-down         # Rollback last migration
+mise run migrate-create       # Create new migration (set MIGRATION_MESSAGE=...)
+mise run migrate-history      # Show migration history
+mise run migrate-current      # Show current version
+mise run shell-db             # Open PostgreSQL shell
+```
+
+### Testing
+
+```bash
+mise run test             # Run all tests
+mise run test-backend     # Run backend tests
+mise run test-frontend    # Run frontend tests
+```
+
+### Terraform (Slack App IaC)
+
+```bash
+mise run tf-init              # Initialize Terraform
+mise run tf-plan              # Plan changes
+mise run tf-apply             # Apply changes (creates Slack app)
+mise run tf-destroy            # Destroy resources
+mise run tf-output             # Show outputs
+mise run tf-credentials       # Show Slack credentials (sensitive!)
+mise run tf-sync-vars          # Sync .env → Terraform Cloud
+mise run tf-load-vars         # Load Terraform Cloud → .env
+mise run tf-oauth-url         # Show OAuth install URL
+```
+
+### Full List
+
+```bash
+mise tasks
+```
+
 ## Development Workflow
 
-### Run Backend + Bot + Frontend
+### Run All Services
 
 ```bash
 # Terminal 1: Backend API
@@ -196,12 +269,6 @@ mise run dev-bot
 
 # Terminal 3: Frontend
 mise run dev-frontend
-```
-
-### Run Tests
-
-```bash
-mise run test-backend
 ```
 
 ### Rebuild After Changes
