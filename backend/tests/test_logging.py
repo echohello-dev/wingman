@@ -9,7 +9,8 @@ from datetime import datetime
 import pytest
 
 
-def run_logging(code, **settings):
+def run_logging(code: str, **settings: str) -> subprocess.CompletedProcess[str]:
+    """Run a logging check in an isolated process with explicit settings."""
     return subprocess.run(
         [sys.executable, "-c", code],
         env={**os.environ, **settings},
@@ -20,7 +21,8 @@ def run_logging(code, **settings):
 
 
 @pytest.mark.parametrize("service", ["wingman-backend", "wingman-bot"])
-def test_json_stdout_preserves_controls_and_avoids_duplicate_handlers(service):
+def test_json_stdout_preserves_controls_and_avoids_duplicate_handlers(service: str) -> None:
+    """Emit parseable, redacted records once with the correct service metadata."""
     result = run_logging(
         f"""
 import logging
@@ -53,7 +55,8 @@ except ValueError:
     assert not result.stderr
 
 
-def test_text_format_and_configured_level():
+def test_text_format_and_configured_level() -> None:
+    """Honor the selected text format and minimum severity."""
     result = run_logging(
         """
 import logging
@@ -70,7 +73,8 @@ logger.warning("visible")
     assert not result.stderr
 
 
-def test_api_keeps_backend_service_when_importing_bot():
+def test_api_keeps_backend_service_when_importing_bot() -> None:
+    """Keep the API service label after importing the Slack bot singleton."""
     result = run_logging(
         """
 import sys
