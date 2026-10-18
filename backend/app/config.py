@@ -15,6 +15,11 @@ class Settings(BaseSettings):
     APP_NAME: str = "Wingman"
     APP_VERSION: str = "0.1.0"
     DEBUG: bool = False
+    ENVIRONMENT: str = "development"
+    LOG_LEVEL: str = "INFO"
+    LOG_FORMAT: str = "json"  # json | text
+    LOG_WIDE_EVENT_SAMPLE_RATE: float = 1.0
+    LOG_SLOW_MS: float = 1000
     
     # Server
     HOST: str = "0.0.0.0"
