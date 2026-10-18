@@ -9,12 +9,14 @@ from pydantic import BaseModel
 import logging
 
 from app.config import settings
+from app.logging import configure_logging
+from app.logging_config import WideEventMiddleware
+
+configure_logging(service="wingman-backend")
+
 from app.database import get_db, init_db, SlackMessage, Document
 from app.rag import rag_engine
 from app.slack_bot import slack_bot
-from app.logging_config import WideEventMiddleware, configure_logging
-
-configure_logging(settings.LOG_LEVEL, settings.LOG_FORMAT, "wingman-backend", settings.ENVIRONMENT, settings.APP_VERSION)
 
 logger = logging.getLogger(__name__)
 

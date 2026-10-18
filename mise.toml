@@ -51,7 +51,7 @@ run = "docker compose ps"
 [tasks.test-backend]
 description = "Run backend tests"
 dir = "backend"
-run = "uv run pytest tests/test_file_extraction_units.py -v"
+run = "uv run pytest tests/test_file_extraction_units.py tests/test_logging_config.py tests/test_logging.py -v"
 
 [tasks.migrate]
 description = "Run database migrations (upgrade to latest)"
