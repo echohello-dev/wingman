@@ -14,6 +14,8 @@ An ADR is a document that captures an important architectural decision made alon
 | [0002](0002-release-please-for-monorepo-versioning.md) | Release Please for Monorepo Versioning | Accepted | 2025-12-31 |
 | [0003](0003-terraform-slack-app-iac.md) | Terraform for Slack App Infrastructure as Code | Accepted | 2025-12-31 |
 
+| [0004](0004-pi-durable-runtime.md) | Pi Durable Agent Runtime | Accepted | 2026-10-19 |
+
 ## Status Definitions
 
 - **Proposed**: Under discussion, not yet implemented

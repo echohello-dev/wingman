@@ -3,6 +3,7 @@ FastAPI main application
 """
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any
 from pydantic import BaseModel
@@ -43,6 +44,8 @@ app.add_middleware(
 class QuestionRequest(BaseModel):
     question: str
     channel_id: str = None
+    conversation_id: str | None = None
+    request_id: str | None = None
 
 
 class QuestionResponse(BaseModel):
@@ -111,9 +114,12 @@ async def ask_question(request: QuestionRequest):
     Ask a question and get an AI-generated response
     """
     try:
-        response = rag_engine.generate_response(
+        response = await run_in_threadpool(
+            rag_engine.generate_response,
             question=request.question,
-            channel_id=request.channel_id
+            channel_id=request.channel_id,
+            conversation_id=request.conversation_id,
+            request_id=request.request_id,
         )
         return QuestionResponse(**response)
     except Exception as e:

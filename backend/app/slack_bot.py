@@ -1,5 +1,5 @@
 """
-Slack Bot implementation using Slack Bolt with AI streaming support
+Slack Bot ingestion with Pi Durable answer and delivery jobs
 """
 import io
 import logging
@@ -12,11 +12,7 @@ from app.rag import rag_engine
 from slack_bolt import App
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from slack_sdk import WebClient
-from slack_sdk.models.messages.chunk import (
-    MarkdownTextChunk,
-    TaskUpdateChunk,
-    PlanUpdateChunk,
-)
+
 
 logger = logging.getLogger(__name__)
 
@@ -40,291 +36,58 @@ class SlackBot:
         
         @self.app.event("app_mention")
         def handle_mention(event, client, context):
-            """Handle @mentions of the bot with AI streaming"""
-            logger.info(f"Received mention: {event}")
-
+            channel = event["channel"]
+            thread = event.get("thread_ts") or event["ts"]
+            team = context.get("team_id", "unknown")
             try:
-                text = event.get("text", "")
-                question = text.split(">", 1)[-1].strip()
-
-                channel_id = event.get("channel")
-                user_id = event.get("user")
-                thread_ts = event.get("thread_ts") or event.get("ts")
-                message_ts = event.get("ts")
-
-                if event.get("thread_ts"):
-                    conversation_id = f"thread:{channel_id}:{thread_ts}"
-                else:
-                    conversation_id = f"{channel_id}:{user_id}"
-
-                if thread_ts:
-                    thread_messages = self._get_thread_messages(channel_id, thread_ts)
-                    rag_engine.index_slack_thread(thread_messages, channel_id)
-
-                team_id = context.team_id if hasattr(context, 'team_id') else None
-
-                streamer = client.chat_stream(
-                    channel=channel_id,
-                    recipient_team_id=team_id,
-                    recipient_user_id=user_id,
-                    thread_ts=thread_ts,
-                    task_display_mode="plan",
-                )
-
-                streamer.append(chunks=[
-                    PlanUpdateChunk(title="Processing your request..."),
-                    TaskUpdateChunk(
-                        id="thinking",
-                        title="Analyzing question...",
-                        status="in_progress",
-                    ),
-                ])
-
                 self._store_message(event)
-
-                streamer.append(chunks=[
-                    TaskUpdateChunk(
-                        id="thinking",
-                        title="Analyzing question...",
-                        status="complete",
-                    ),
-                    TaskUpdateChunk(
-                        id="searching",
-                        title="Searching knowledge base...",
-                        status="in_progress",
-                    ),
-                ])
-
-                response = rag_engine.generate_response(
-                    question=question,
-                    channel_id=channel_id,
-                    conversation_id=conversation_id,
-                    user_id=user_id,
-                    message_ts=message_ts
+                rag_engine.index_slack_thread(self._get_thread_messages(channel, thread), channel)
+                rag_engine.submit_slack(
+                    event.get("text", "").split(">", 1)[-1].strip(), channel,
+                    f"{team}:thread:{channel}:{thread}",
+                    f"{team}:mention:{channel}:{event['ts']}", thread,
                 )
+            except Exception:
+                logger.exception("Failed to enqueue mention")
+                client.chat_postMessage(channel=channel, thread_ts=thread,
+                    text="I couldn't queue your question. Please try again.")
 
-                streamer.append(chunks=[
-                    TaskUpdateChunk(
-                        id="searching",
-                        title="Searching knowledge base...",
-                        status="complete",
-                    ),
-                    TaskUpdateChunk(
-                        id="generating",
-                        title="Generating response...",
-                        status="in_progress",
-                    ),
-                ])
-
-                streamer.append(chunks=[
-                    TaskUpdateChunk(
-                        id="generating",
-                        title="Generating response...",
-                        status="complete",
-                    ),
-                    MarkdownTextChunk(text=response["answer"]),
-                ])
-
-                streamer.stop()
-
-            except Exception as e:
-                logger.error(f"Error handling mention: {e}")
-                try:
-                    error_streamer = client.chat_stream(
-                        channel=event.get("channel"),
-                        recipient_user_id=event.get("user"),
-                        thread_ts=thread_ts,
-                    )
-                    error_streamer.append(chunks=[
-                        MarkdownTextChunk(text=f"Sorry, I encountered an error: {str(e)}"),
-                    ])
-                    error_streamer.stop()
-                except Exception:
-                    logger.error("Failed to send error via streaming")
-        
         @self.app.event("message")
         def handle_message(event, client, context):
-            """Handle direct messages with AI streaming"""
-            if event.get("channel_type") == "im":
-                logger.info(f"Received DM: {event}")
+            if event.get("channel_type") != "im" or event.get("bot_id") or event.get("subtype"):
+                return
+            channel = event["channel"]
+            team = context.get("team_id", "unknown")
+            try:
+                self._store_message(event)
+                rag_engine.submit_slack(
+                    event.get("text", ""), channel, f"{team}:dm:{channel}:{event['user']}",
+                    f"{team}:dm:{channel}:{event['ts']}", event.get("thread_ts") or event["ts"],
+                )
+            except Exception:
+                logger.exception("Failed to enqueue DM")
+                client.chat_postMessage(channel=channel, thread_ts=event['ts'],
+                    text="I couldn't queue your question. Please try again.")
 
-                try:
-                    question = event.get("text", "")
-                    user_id = event.get("user")
-                    channel_id = event.get("channel")
-                    message_ts = event.get("ts")
-
-                    conversation_id = f"dm:{user_id}"
-                    team_id = context.team_id if hasattr(context, 'team_id') else None
-
-                    streamer = client.chat_stream(
-                        channel=channel_id,
-                        recipient_team_id=team_id,
-                        recipient_user_id=user_id,
-                        thread_ts=message_ts,
-                        task_display_mode="plan",
-                    )
-
-                    streamer.append(chunks=[
-                        PlanUpdateChunk(title="Processing your request..."),
-                        TaskUpdateChunk(
-                            id="thinking",
-                            title="Analyzing question...",
-                            status="in_progress",
-                        ),
-                    ])
-
-                    self._store_message(event)
-
-                    streamer.append(chunks=[
-                        TaskUpdateChunk(
-                            id="thinking",
-                            title="Analyzing question...",
-                            status="complete",
-                        ),
-                        TaskUpdateChunk(
-                            id="searching",
-                            title="Searching knowledge base...",
-                            status="in_progress",
-                        ),
-                    ])
-
-                    response = rag_engine.generate_response(
-                        question=question,
-                        channel_id=channel_id,
-                        conversation_id=conversation_id,
-                        user_id=user_id,
-                        message_ts=message_ts
-                    )
-
-                    streamer.append(chunks=[
-                        TaskUpdateChunk(
-                            id="searching",
-                            title="Searching knowledge base...",
-                            status="complete",
-                        ),
-                        TaskUpdateChunk(
-                            id="generating",
-                            title="Generating response...",
-                            status="in_progress",
-                        ),
-                    ])
-
-                    streamer.append(chunks=[
-                        TaskUpdateChunk(
-                            id="generating",
-                            title="Generating response...",
-                            status="complete",
-                        ),
-                        MarkdownTextChunk(text=response["answer"]),
-                    ])
-
-                    streamer.stop()
-
-                except Exception as e:
-                    logger.error(f"Error handling message: {e}")
-                    try:
-                        error_streamer = client.chat_stream(
-                            channel=channel_id,
-                            recipient_user_id=user_id,
-                            thread_ts=message_ts,
-                        )
-                        error_streamer.append(chunks=[
-                            MarkdownTextChunk(text=f"Sorry, I encountered an error: {str(e)}"),
-                        ])
-                        error_streamer.stop()
-                    except Exception:
-                        logger.error("Failed to send error via streaming")
-        
         @self.app.command("/wingman")
         def handle_command(ack, command, client, context):
-            """Handle /wingman slash command with AI streaming"""
             ack()
-            logger.info(f"Received command: {command}")
-
+            channel = command["channel_id"]
+            question = command.get("text", "").strip()
+            if not question:
+                client.chat_postMessage(channel=channel, text="How can I help you? Please provide a question.")
+                return
             try:
-                question = command.get("text", "")
-
-                if not question:
-                    client.chat_postMessage(
-                        text="How can I help you? Please provide a question.",
-                        channel=command.get("channel_id"),
-                        thread_ts=command.get("thread_ts"),
-                    )
-                    return
-
-                user_id = command.get("user_id")
-                channel_id = command.get("channel_id")
-                thread_ts = command.get("thread_ts")
-                team_id = command.get("team_id")
-
-                streamer = client.chat_stream(
-                    channel=channel_id,
-                    recipient_team_id=team_id,
-                    recipient_user_id=user_id,
-                    thread_ts=thread_ts,
-                    task_display_mode="plan",
+                team = command["team_id"]
+                rag_engine.submit_slack(
+                    question, channel, f"{team}:command:{channel}:{command['user_id']}",
+                    f"{team}:command:{command['trigger_id']}", command.get("thread_ts"),
                 )
+            except Exception:
+                logger.exception("Failed to enqueue slash command")
+                client.chat_postMessage(channel=channel,
+                    text="I couldn't queue your question. Please try again.")
 
-                streamer.append(chunks=[
-                    PlanUpdateChunk(title="Processing your request..."),
-                    TaskUpdateChunk(
-                        id="thinking",
-                        title="Analyzing question...",
-                        status="in_progress",
-                    ),
-                ])
-
-                streamer.append(chunks=[
-                    TaskUpdateChunk(
-                        id="thinking",
-                        title="Analyzing question...",
-                        status="complete",
-                    ),
-                    TaskUpdateChunk(
-                        id="searching",
-                        title="Searching knowledge base...",
-                        status="in_progress",
-                    ),
-                ])
-
-                response = rag_engine.generate_response(question)
-
-                streamer.append(chunks=[
-                    TaskUpdateChunk(
-                        id="searching",
-                        title="Searching knowledge base...",
-                        status="complete",
-                    ),
-                    TaskUpdateChunk(
-                        id="generating",
-                        title="Generating response...",
-                        status="in_progress",
-                    ),
-                ])
-
-                streamer.append(chunks=[
-                    TaskUpdateChunk(
-                        id="generating",
-                        title="Generating response...",
-                        status="complete",
-                    ),
-                    MarkdownTextChunk(text=response["answer"]),
-                ])
-
-                streamer.stop()
-
-            except Exception as e:
-                logger.error(f"Error handling command: {e}")
-                try:
-                    client.chat_postMessage(
-                        text=f"Sorry, I encountered an error: {str(e)}",
-                        channel=command.get("channel_id"),
-                        thread_ts=command.get("thread_ts"),
-                    )
-                except Exception:
-                    logger.error("Failed to send error message")
-        
         @self.app.event("reaction_added")
         def handle_reaction(event):
             """Handle reactions to learn from user feedback"""
