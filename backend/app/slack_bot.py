@@ -7,6 +7,9 @@ from typing import Any, Dict
 
 import httpx
 from app.config import settings
+from app.logging_config import configure_logging
+
+configure_logging(settings.LOG_LEVEL, settings.LOG_FORMAT, "wingman-bot", settings.ENVIRONMENT, settings.APP_VERSION)
 from app.database import Document, SessionLocal, SlackMessage
 from app.rag import rag_engine
 from slack_bolt import App
@@ -18,7 +21,6 @@ from slack_sdk.models.messages.chunk import (
     PlanUpdateChunk,
 )
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 

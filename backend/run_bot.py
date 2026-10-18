@@ -2,10 +2,13 @@
 Script to run the Slack bot
 """
 import logging
+from app.config import settings
+from app.logging_config import configure_logging
+
+configure_logging(settings.LOG_LEVEL, settings.LOG_FORMAT, "wingman-bot", settings.ENVIRONMENT, settings.APP_VERSION)
 from app.slack_bot import slack_bot
 from app.database import init_db
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 if __name__ == "__main__":

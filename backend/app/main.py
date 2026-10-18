@@ -12,8 +12,10 @@ from app.config import settings
 from app.database import get_db, init_db, SlackMessage, Document
 from app.rag import rag_engine
 from app.slack_bot import slack_bot
+from app.logging_config import WideEventMiddleware, configure_logging
 
-logging.basicConfig(level=logging.INFO)
+configure_logging(settings.LOG_LEVEL, settings.LOG_FORMAT, "wingman-backend", settings.ENVIRONMENT, settings.APP_VERSION)
+
 logger = logging.getLogger(__name__)
 
 # Create FastAPI app
@@ -22,6 +24,8 @@ app = FastAPI(
     version=settings.APP_VERSION,
     description="Slack Support Assistant with RAG capabilities"
 )
+
+app.add_middleware(WideEventMiddleware, sample_rate=settings.LOG_WIDE_EVENT_SAMPLE_RATE, slow_ms=settings.LOG_SLOW_MS)
 
 # Configure CORS
 app.add_middleware(

@@ -7,6 +7,9 @@ from langchain_community.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings
 from typing import List, Dict, Any
 from app.config import settings
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class VectorStore:
@@ -41,7 +44,7 @@ class VectorStore:
             self._init_vector_store()
             self._initialized = True
         except Exception as e:
-            print(f"Error initializing vector store: {e}")
+            logger.error("Error initializing vector store: %s", e)
             raise
     
     def _init_vector_store(self):
@@ -53,7 +56,7 @@ class VectorStore:
                 embedding_function=self.embeddings
             )
         except Exception as e:
-            print(f"Error initializing vector store: {e}")
+            logger.error("Error initializing vector store: %s", e)
             raise
     
     def add_documents(self, texts: List[str], metadatas: List[Dict[str, Any]] = None):
@@ -87,7 +90,7 @@ class VectorStore:
         try:
             self.client.delete_collection(name=self.collection_name)
         except Exception as e:
-            print(f"Error deleting collection: {e}")
+            logger.error("Error deleting collection: %s", e)
 
 
 # Global instance
