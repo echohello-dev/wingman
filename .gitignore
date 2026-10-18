@@ -79,3 +79,6 @@ out/
 
 # OS
 Thumbs.db
+
+# Pi Durable local state (includes conversations)
+runtime/data/

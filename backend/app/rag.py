@@ -8,51 +8,13 @@ from typing import Any, Dict, List, Optional
 from app.config import settings
 from app.database import ConversationHistory, SessionLocal
 from app.vector_store import vector_store
-from langchain_core.prompts import PromptTemplate
-from langchain_openai import ChatOpenAI
+from app import agent_runtime
 
 logger = logging.getLogger(__name__)
 
 
 class RAGEngine:
     """RAG engine for answering questions based on retrieved context"""
-    
-    def __init__(self):
-        """Initialize RAG components"""
-        # Initialize LLM
-        api_key = settings.OPENROUTER_API_KEY or settings.OPENAI_API_KEY
-        
-        # Use OpenRouter if available, otherwise OpenAI
-        if settings.OPENROUTER_API_KEY:
-            self.llm = ChatOpenAI(
-                model=settings.LLM_MODEL,
-                temperature=settings.LLM_TEMPERATURE,
-                max_tokens=settings.LLM_MAX_TOKENS,
-                openai_api_key=settings.OPENROUTER_API_KEY,
-                openai_api_base="https://openrouter.ai/api/v1"
-            )
-        else:
-            self.llm = ChatOpenAI(
-                model=settings.LLM_MODEL,
-                temperature=settings.LLM_TEMPERATURE,
-                max_tokens=settings.LLM_MAX_TOKENS,
-                openai_api_key=settings.OPENAI_API_KEY
-            )
-        
-        # Define prompt template
-        self.prompt_template = PromptTemplate(
-            template="""You are Wingman, a helpful Slack support assistant. 
-Use the following context from Slack threads and documentation to answer the question.
-If you cannot find the answer in the context, say so and provide general guidance.
-
-{conversation_history}Context:
-{context}
-
-Question: {question}
-
-Answer:""",
-            input_variables=["conversation_history", "context", "question"]
-        )
     
     def get_conversation_history(self, conversation_id: str) -> str:
         """
@@ -128,76 +90,48 @@ Answer:""",
         except Exception as e:
             logger.error(f"Error storing conversation turn: {e}")
     
-    def generate_response(self, question: str, channel_id: str = None, 
-                         conversation_id: Optional[str] = None,
-                         user_id: Optional[str] = None,
-                         message_ts: Optional[str] = None) -> Dict[str, Any]:
-        """
-        Generate a response using RAG
-        
-        Args:
-            question: The user's question
-            channel_id: Optional channel ID to filter context
-            conversation_id: Optional conversation ID for memory
-            user_id: Optional user ID for conversation tracking
-            message_ts: Optional Slack timestamp for the user message
-            
-        Returns:
-            Dictionary with response and metadata
-        """
-        # Get conversation history if conversation_id provided
-        conversation_history = ""
-        if conversation_id:
-            conversation_history = self.get_conversation_history(conversation_id)
-            
-            # Store user message
-            if user_id and channel_id:
-                self._store_conversation_turn(
-                    conversation_id=conversation_id,
-                    user_id=user_id,
-                    channel_id=channel_id,
-                    role="user",
-                    message=question,
-                    message_ts=message_ts
-                )
-        
-        # Search for relevant context
+    def _agent_payload(self, question: str, channel_id=None, conversation_id=None,
+                       request_id=None, slack=None):
         results = vector_store.similarity_search(question)
-        
-        # Filter by channel if specified
         if channel_id:
             results = [r for r in results if r.get("metadata", {}).get("channel_id") == channel_id]
-        
-        # Build context from results
-        context = "\n\n".join([
-            f"From {r['metadata'].get('source', 'unknown')}:\n{r['content']}"
-            for r in results
-        ])
-        
-        # Generate response
-        prompt = self.prompt_template.format(
-            conversation_history=conversation_history,
-            context=context,
-            question=question
-        )
-        response = self.llm.invoke(prompt)
-        
-        # Store assistant response
-        if conversation_id and user_id and channel_id:
-            self._store_conversation_turn(
-                conversation_id=conversation_id,
-                user_id=user_id,
-                channel_id=channel_id,
-                role="assistant",
-                message=response.content
-            )
-        
-        return {
-            "answer": response.content,
+        identifier = request_id or agent_runtime.request_id()
+        payload = {
+            "request_id": identifier,
+            "conversation_id": conversation_id or f"request:{identifier}",
+            "question": question,
+            "context": "\n\n".join(
+                f"From {r['metadata'].get('source', 'unknown')}:\n{r['content']}"
+                for r in results
+            ),
             "sources": [r["metadata"] for r in results],
-            "confidence": "high" if results else "low"
         }
-    
+        if slack:
+            payload["slack"] = slack
+        return payload
+
+    def generate_response(self, question: str, channel_id: str = None,
+                         conversation_id: Optional[str] = None,
+                         user_id: Optional[str] = None,
+                         message_ts: Optional[str] = None,
+                         request_id: Optional[str] = None) -> Dict[str, Any]:
+        """Retrieve context, then wait for a persisted Pi Durable answer.
+
+        Legacy PostgreSQL history remains available for audit; Pi owns new turns.
+        API callers should supply a request ID to retry an interrupted wait safely.
+        """
+        return agent_runtime.generate(self._agent_payload(
+            question, channel_id, conversation_id,
+            request_id or (f"slack:{channel_id}:{message_ts}" if message_ts else None),
+        ))
+
+    def submit_slack(self, question, channel_id, conversation_id, request_id, thread_ts):
+        """Durably enqueue generation and delivery before returning to Slack Bolt."""
+        return agent_runtime.submit(self._agent_payload(
+            question, channel_id, conversation_id, request_id,
+            slack={"channel": channel_id, "thread_ts": thread_ts},
+        ))
+
     def index_slack_thread(self, messages: List[Dict[str, Any]], channel_id: str):
         """
         Index a Slack thread for retrieval

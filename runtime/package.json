@@ -1,0 +1,12 @@
+{
+  "name": "wingman-runtime",
+  "private": true,
+  "type": "module",
+  "scripts": {"start": "node server.mjs", "test": "node --test"},
+  "dependencies": {
+    "@earendil-works/chord": "1.3.0",
+    "@earendil-works/pi-ai": "1.3.0",
+    "@earendil-works/pi-durable": "1.3.0"
+  },
+  "engines": {"node": ">=24"}
+}

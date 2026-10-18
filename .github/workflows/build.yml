@@ -29,6 +29,9 @@ jobs:
       - name: Run backend tests
         run: mise run test-backend
 
+      - name: Run Pi Durable runtime tests
+        run: mise run test-runtime
+
       - name: Run frontend tests
         run: mise run test-frontend
 
@@ -38,7 +41,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: [backend, frontend]
+        service: [backend, frontend, runtime]
     permissions:
       packages: write
       contents: read

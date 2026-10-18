@@ -166,34 +166,21 @@ def test_conversation_memory_window_limit(db):
     assert message_count <= settings.CONVERSATION_MEMORY_WINDOW
 
 
-def test_generate_response_stores_conversation(db):
-    """Test that generate_response stores conversation turns"""
-    conversation_id = "test:response"
-    user_id = "user123"
-    channel_id = "channel456"
-    question = "What is RAG?"
-    
-    # Generate a response
-    rag_engine.generate_response(
-        question=question,
-        channel_id=channel_id,
-        conversation_id=conversation_id,
-        user_id=user_id,
-        message_ts="1234567890.123456"
-    )
-    
-    # Verify both user message and assistant response are stored
-    user_msg = db.query(ConversationHistory).filter(
-        ConversationHistory.conversation_id == conversation_id,
-        ConversationHistory.role == "user"
-    ).first()
-    
-    assistant_msg = db.query(ConversationHistory).filter(
-        ConversationHistory.conversation_id == conversation_id,
-        ConversationHistory.role == "assistant"
-    ).first()
-    
-    assert user_msg is not None
-    assert user_msg.message == question
-    assert assistant_msg is not None
-    assert assistant_msg.role == "assistant"
+def test_generate_response_uses_pi_conversation(db, monkeypatch):
+    """New turns go through Pi rather than the legacy PostgreSQL history."""
+    from app import agent_runtime
+    from app.vector_store import vector_store
+
+    monkeypatch.setattr(vector_store, "similarity_search", lambda _: [])
+    captured = []
+    result = {"answer": "Pi answer", "sources": [], "confidence": "low"}
+    monkeypatch.setattr(agent_runtime, "generate", lambda payload: captured.append(payload) or result)
+    assert rag_engine.generate_response(
+        "What is RAG?", channel_id="channel456", conversation_id="test:response",
+        user_id="user123", message_ts="1234567890.123456",
+    ) == result
+    assert captured[0]["conversation_id"] == "test:response"
+    assert captured[0]["request_id"] == "slack:channel456:1234567890.123456"
+    assert not db.query(ConversationHistory).filter(
+        ConversationHistory.conversation_id == "test:response"
+    ).count()

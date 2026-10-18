@@ -1,10 +1,10 @@
 # Wingman
 
-AI-powered Slack support assistant with RAG capabilities and **AI streaming with thinking steps**. Watch the bot's reasoning process in real-time as it searches knowledge bases and generates responses.
+AI-powered Slack support assistant with RAG capabilities and a Pi Durable agent runtime. Conversations and admitted requests survive runtime restarts.
 
 ## Features
 
-- **AI Streaming**: See the bot think in real-time with Thinking Steps
+- **Durable agents**: Persisted conversations, crash recovery, and queued Slack replies
 - **RAG-powered Answers**: Uses indexed documents via LangChain + ChromaDB
 - **Multi-channel Support**: DMs, mentions, slash commands
 - **Document Indexing**: Auto-index files shared in Slack
@@ -28,7 +28,7 @@ In Slack:
 - **Mention**: `@Wingman what's up?`
 - **Command**: `/wingman hello`
 
-You'll see streaming thinking steps as the bot processes your request.
+Wingman posts the final answer in Slack after processing the request.
 
 ## Documentation
 
@@ -38,10 +38,11 @@ You'll see streaming thinking steps as the bot processes your request.
 | [Local Development](docs/local-development.md) | Run locally with streaming |
 | [Setup Guide](docs/setup.md) | Full deployment |
 | [Slack Auth](docs/slack-auth.md) | Token reference |
+| [Pi Runtime](docs/pi-runtime.md) | Persistence, recovery, and local development |
 
 ## Architecture
 
-FastAPI backend with Slack bot, RAG engine (LangChain + ChromaDB), PostgreSQL storage, and Next.js dashboard. See [ADR-0001](docs/adrs/0001-technology-stack-and-rag-architecture.md) for architecture decisions.
+FastAPI backend with Slack bot, Pi Durable agent service, RAG retrieval (LangChain + ChromaDB), PostgreSQL storage, and Next.js dashboard. See [ADR-0004](docs/adrs/0004-pi-durable-runtime.md) for the runtime decision.
 
 ## Development
 

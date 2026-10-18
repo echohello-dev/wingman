@@ -40,6 +40,13 @@ class Settings(BaseSettings):
     LLM_TEMPERATURE: float = 0.7
     LLM_MAX_TOKENS: int = 2000
     
+    # Pi Durable service (single owner of agent sessions)
+    PI_PROVIDER: str = ""
+    XIAOMI_TOKEN_PLAN_SGP_API_KEY: Optional[str] = None
+    PI_RUNTIME_URL: str = "http://localhost:8002"
+    PI_RUNTIME_TOKEN: str = ""
+    PI_WAIT_TIMEOUT_SECONDS: int = 180
+
     # Database
     DATABASE_URL: str = "postgresql://wingman:wingman@localhost:5432/wingman"
     

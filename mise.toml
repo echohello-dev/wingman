@@ -51,7 +51,7 @@ run = "docker compose ps"
 [tasks.test-backend]
 description = "Run backend tests"
 dir = "backend"
-run = "uv run pytest tests/test_file_extraction_units.py tests/test_logging_config.py tests/test_logging.py -v"
+run = "uv run pytest tests/test_file_extraction_units.py tests/test_logging_config.py tests/test_logging.py tests/test_agent_runtime.py -v"
 
 [tasks.migrate]
 description = "Run database migrations (upgrade to latest)"
@@ -85,7 +85,7 @@ run = "echo 'No frontend tests yet' && exit 0"
 
 [tasks.test]
 description = "Run all tests"
-depends = ["test-backend"]
+depends = ["test-backend", "test-runtime"]
 
 [tasks.shell-backend]
 description = "Open shell in backend container"
@@ -114,7 +114,7 @@ run = "bun install"
 
 [tasks.install]
 description = "Install all dependencies locally"
-depends = ["install-backend", "install-frontend"]
+depends = ["install-backend", "install-frontend", "install-runtime"]
 
 [tasks.dev-backend]
 description = "Run backend in development mode"
@@ -227,3 +227,23 @@ echo ""
 echo "Opening in browser..."
 open "$URL" 2>/dev/null || xdg-open "$URL" 2>/dev/null || echo "Please open the URL above manually."
 """
+
+[tasks.install-runtime]
+description = "Install Pi Durable runtime dependencies"
+dir = "runtime"
+run = "bun install --frozen-lockfile --ignore-scripts"
+
+[tasks.dev-runtime]
+description = "Run Pi Durable locally (loads the root .env through mise)"
+dir = "runtime"
+run = "node server.mjs"
+
+[tasks.test-runtime]
+description = "Test Pi persistence, retries, and reply delivery"
+dir = "runtime"
+run = "node --test"
+
+[tasks.test-runtime-live]
+description = "Run paid MiMo smoke test using the API key from local Pi (no Slack messages)"
+dir = "runtime"
+run = "python3 scripts/test-live-mimo.py"
