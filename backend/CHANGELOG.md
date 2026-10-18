@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.0](https://github.com/echohello-dev/wingman/compare/v1.1.0...v1.2.0) (2026-10-18)
+
+
+### Features
+
+* **logging:** add structured wide-event logging baseline ([#11](https://github.com/echohello-dev/wingman/issues/11)) ([6d8d923](https://github.com/echohello-dev/wingman/commit/6d8d92399ae9e832dea4b7cf653f1d3a98180087))
+* run Wingman agents on Pi Durable ([#14](https://github.com/echohello-dev/wingman/issues/14)) ([d078bd2](https://github.com/echohello-dev/wingman/commit/d078bd2e6ba32529363b5fa483f59d2dc5af8fda))
+
 ## [1.1.0](https://github.com/echohello-dev/wingman/compare/v1.0.0...v1.1.0) (2026-07-24)
 
 
