@@ -1,12 +1,15 @@
 """
 FastAPI main application
 """
-from fastapi import FastAPI, HTTPException, Depends
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.concurrency import run_in_threadpool
-from sqlalchemy.orm import Session
-from typing import List, Dict, Any
 from pydantic import BaseModel
+from sqlalchemy import func
+from sqlalchemy.orm import Session
+from starlette.concurrency import run_in_threadpool
 import logging
 
 from app.config import settings
@@ -15,7 +18,7 @@ from app.logging_config import WideEventMiddleware
 
 configure_logging(service="wingman-backend")
 
-from app.database import get_db, init_db, SlackMessage, Document
+from app.database import ConversationHistory, get_db, init_db, SlackMessage, Document
 from app.rag import rag_engine
 from app.slack_bot import slack_bot
 
@@ -66,9 +69,47 @@ class MessageResponse(BaseModel):
     channel_id: str
     user_id: str
     text: str
-    
+
     class Config:
         from_attributes = True
+
+
+class ConversationSummary(BaseModel):
+    conversation_id: str
+    channel_id: Optional[str] = None
+    message_count: int
+    first_message_at: Optional[datetime] = None
+    last_message_at: Optional[datetime] = None
+    last_message_preview: Optional[str] = None
+
+
+class ConversationListResponse(BaseModel):
+    items: List[ConversationSummary]
+    total: int
+    limit: int
+    offset: int
+
+
+class ConversationTurn(BaseModel):
+    id: int
+    conversation_id: str
+    user_id: Optional[str] = None
+    channel_id: Optional[str] = None
+    role: str
+    message: str
+    message_ts: Optional[str] = None
+    created_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class ConversationDetailResponse(BaseModel):
+    conversation_id: str
+    items: List[ConversationTurn]
+    total: int
+    limit: int
+    offset: int
 
 
 # Startup/Shutdown Events
@@ -196,6 +237,95 @@ async def list_messages(
     except Exception as e:
         logger.error(f"Error listing messages: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/conversations", response_model=ConversationListResponse)
+async def list_conversations(
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    channel_id: str = None,
+    db: Session = Depends(get_db),
+):
+    """List one summary per conversation, most recently active first."""
+    base = db.query(ConversationHistory)
+    if channel_id:
+        base = base.filter(ConversationHistory.channel_id == channel_id)
+
+    total = base.with_entities(
+        func.count(func.distinct(ConversationHistory.conversation_id))
+    ).scalar() or 0
+
+    rows = (
+        base.with_entities(
+            ConversationHistory.conversation_id,
+            func.max(ConversationHistory.channel_id),
+            func.count(ConversationHistory.id),
+            func.min(ConversationHistory.created_at),
+            func.max(ConversationHistory.created_at),
+        )
+        .group_by(ConversationHistory.conversation_id)
+        .order_by(func.max(ConversationHistory.created_at).desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+
+    items = []
+    for conversation_id, row_channel_id, count, first_at, last_at in rows:
+        last_row = (
+            db.query(ConversationHistory)
+            .filter(ConversationHistory.conversation_id == conversation_id)
+            .order_by(
+                ConversationHistory.created_at.desc(), ConversationHistory.id.desc()
+            )
+            .first()
+        )
+        preview = None
+        if last_row is not None and last_row.message:
+            preview = last_row.message[:120]
+        items.append(
+            ConversationSummary(
+                conversation_id=conversation_id,
+                channel_id=row_channel_id,
+                message_count=count,
+                first_message_at=first_at,
+                last_message_at=last_at,
+                last_message_preview=preview,
+            )
+        )
+    return ConversationListResponse(items=items, total=total, limit=limit, offset=offset)
+
+
+@app.get("/api/conversations/{conversation_id}", response_model=ConversationDetailResponse)
+async def get_conversation(
+    conversation_id: str,
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+):
+    """Return the turns of one conversation in chronological order."""
+    total = (
+        db.query(ConversationHistory)
+        .filter(ConversationHistory.conversation_id == conversation_id)
+        .count()
+    )
+    if total == 0:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    turns = (
+        db.query(ConversationHistory)
+        .filter(ConversationHistory.conversation_id == conversation_id)
+        .order_by(ConversationHistory.created_at.asc(), ConversationHistory.id.asc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+    return ConversationDetailResponse(
+        conversation_id=conversation_id,
+        items=turns,
+        total=total,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @app.post("/api/index/thread")
