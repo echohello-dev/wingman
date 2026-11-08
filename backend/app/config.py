@@ -65,5 +65,11 @@ class Settings(BaseSettings):
     CONVERSATION_MEMORY_WINDOW: int = 10  # Number of recent messages to include
     CONVERSATION_TIMEOUT_MINUTES: int = 30  # How long to consider a conversation active
 
+    # Operator Rules (deterministic canned answers, checked before RAG)
+    # Inline JSON list of rules, or a path to a JSON file with the same shape.
+    # The file wins when both are set. Empty means no rules.
+    OPERATOR_RULES_JSON: Optional[str] = None
+    OPERATOR_RULES_FILE: Optional[str] = None
+
 
 settings = Settings()
