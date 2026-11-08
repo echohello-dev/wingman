@@ -9,6 +9,7 @@ from app.config import settings
 from app.database import ConversationHistory, SessionLocal
 from app.vector_store import vector_store
 from app import agent_runtime
+from app import rules
 
 logger = logging.getLogger(__name__)
 
@@ -110,6 +111,10 @@ class RAGEngine:
             payload["slack"] = slack
         return payload
 
+    def match_operator_rule(self, question: str):
+        """Return the operator rule that fires for a question, if any."""
+        return rules.rule_engine.match(question)
+
     def generate_response(self, question: str, channel_id: str = None,
                          conversation_id: Optional[str] = None,
                          user_id: Optional[str] = None,
@@ -117,9 +122,19 @@ class RAGEngine:
                          request_id: Optional[str] = None) -> Dict[str, Any]:
         """Retrieve context, then wait for a persisted Pi Durable answer.
 
-        Legacy PostgreSQL history remains available for audit; Pi owns new turns.
-        API callers should supply a request ID to retry an interrupted wait safely.
+        Operator rules run first, so a pinned answer returns without
+        retrieval or a Pi job. Legacy PostgreSQL history remains available
+        for audit; Pi owns new turns. API callers should supply a request
+        ID to retry an interrupted wait safely.
         """
+        matched = self.match_operator_rule(question)
+        if matched is not None:
+            logger.info("Operator rule %s answered a question", matched.rule.id)
+            return {
+                "answer": matched.rule.response,
+                "sources": [{"source": "operator_rule", "rule_id": matched.rule.id}],
+                "confidence": "high",
+            }
         return agent_runtime.generate(self._agent_payload(
             question, channel_id, conversation_id,
             request_id or (f"slack:{channel_id}:{message_ts}" if message_ts else None),
