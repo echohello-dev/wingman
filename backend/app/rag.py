@@ -141,7 +141,25 @@ class RAGEngine:
         ))
 
     def submit_slack(self, question, channel_id, conversation_id, request_id, thread_ts):
-        """Durably enqueue generation and delivery before returning to Slack Bolt."""
+        """Durably enqueue generation and delivery before returning to Slack Bolt.
+
+        Operator rules run first, as in generate_response. A pinned answer
+        skips retrieval and model generation, but still goes through the
+        Pi job outbox so Slack delivery stays durable and idempotent.
+        """
+        matched = self.match_operator_rule(question)
+        if matched is not None:
+            logger.info("Operator rule %s answered a Slack question", matched.rule.id)
+            identifier = request_id or agent_runtime.request_id()
+            return agent_runtime.submit({
+                "request_id": identifier,
+                "conversation_id": conversation_id or f"request:{identifier}",
+                "question": question,
+                "context": "",
+                "sources": [{"source": "operator_rule", "rule_id": matched.rule.id}],
+                "operator_answer": matched.rule.response,
+                "slack": {"channel": channel_id, "thread_ts": thread_ts},
+            })
         return agent_runtime.submit(self._agent_payload(
             question, channel_id, conversation_id, request_id,
             slack={"channel": channel_id, "thread_ts": thread_ts},

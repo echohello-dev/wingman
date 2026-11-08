@@ -74,6 +74,7 @@ const server = createServer(async (request, response) => {
       try { body = JSON.parse(raw); } catch { return send(400, { error: 'Invalid JSON' }); }
       if (!body || !['request_id','conversation_id','question','context'].every(key => typeof body[key] === 'string') ||
           !body.request_id || !body.conversation_id || !body.question || !Array.isArray(body.sources) ||
+          (body.operator_answer != null && typeof body.operator_answer !== 'string') ||
           (body.slack && (typeof body.slack.channel !== 'string' ||
            (body.slack.thread_ts != null && typeof body.slack.thread_ts !== 'string')))) {
         return send(400, { error: 'Invalid job' });

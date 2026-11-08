@@ -17,6 +17,7 @@ export class Jobs {
     if (previous) {
       const old = previous.payload;
       if (old.question !== payload.question || old.conversation_id !== payload.conversation_id ||
+          (old.operator_answer ?? null) !== (payload.operator_answer ?? null) ||
           JSON.stringify(old.slack) !== JSON.stringify(payload.slack)) {
         throw Object.assign(new Error('Request ID reused for different input'), { statusCode: 409 });
       }
@@ -60,7 +61,11 @@ export class Jobs {
 export async function processJob(jobs, job, answer, deliver) {
   if (!job.result) {
     try {
-      job.result = await answer(job.payload);
+      // A pinned operator answer needs no model call. It still flows
+      // through generated/delivered so Slack delivery retries persist.
+      job.result = typeof job.payload.operator_answer === 'string' && job.payload.operator_answer
+        ? { answer: job.payload.operator_answer, sources: job.payload.sources ?? [], confidence: 'high' }
+        : await answer(job.payload);
       jobs.generated(job.id, job.result, Boolean(job.payload.slack));
     } catch (error) {
       if (!job.payload.slack) {
