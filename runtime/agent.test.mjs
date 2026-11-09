@@ -81,6 +81,26 @@ test('a process killed during generation resumes the admitted Pi submission', { 
 });
 
 
+test('pinned operator answer is delivered without calling the model', async () => {
+  const jobs = new Jobs(':memory:');
+  try {
+    const job = jobs.submit({ ...payload, slack: { channel: 'C1', thread_ts: '1.2' },
+      operator_answer: 'Use the portal.', sources: [{ source: 'operator_rule', rule_id: 'vpn' }] });
+    assert.throws(() => jobs.submit({ ...payload, slack: { channel: 'C1', thread_ts: '1.2' },
+      operator_answer: 'Different pinned answer.', sources: [{ source: 'operator_rule', rule_id: 'vpn' }] }), /reused/);
+    let calls = 0;
+    let delivered;
+    await processJob(jobs, job, async () => { calls++; throw new Error('model must not run'); },
+      async (_id, _target, text) => { delivered = text; });
+    assert.equal(calls, 0);
+    assert.equal(delivered, 'Use the portal.');
+    assert.equal(jobs.get(job.id).status, 'done');
+    assert.deepEqual(jobs.get(job.id).result, {
+      answer: 'Use the portal.', sources: [{ source: 'operator_rule', rule_id: 'vpn' }], confidence: 'high',
+    });
+  } finally { jobs.close(); }
+});
+
 test('model failure sends a persisted Slack failure notification', async () => {
   const jobs = new Jobs(':memory:');
   try {

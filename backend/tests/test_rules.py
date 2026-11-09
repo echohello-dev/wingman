@@ -161,3 +161,51 @@ class TestRagShortCircuit:
         monkeypatch.setattr(rag_module.agent_runtime, "generate", lambda _: expected)
 
         assert rag_module.rag_engine.generate_response("What is RAG?") == expected
+
+
+class TestSlackShortCircuit:
+    def _install_engine(self, monkeypatch, eng):
+        monkeypatch.setattr(rag_module.rules, "rule_engine", eng)
+
+    def test_matched_slack_question_skips_retrieval_and_carries_pinned_answer(self, monkeypatch):
+        self._install_engine(monkeypatch, engine(rule("vpn", ["reset vpn"], response="Use the portal.")))
+        search = Mock(side_effect=AssertionError("retrieval must not run"))
+        monkeypatch.setattr(rag_module.vector_store, "similarity_search", search)
+        submitted = {}
+        def fake_submit(payload):
+            submitted["payload"] = payload
+            return {"id": "job-1", "status": "pending"}
+        monkeypatch.setattr(rag_module.agent_runtime, "submit", fake_submit)
+
+        result = rag_module.rag_engine.submit_slack(
+            "How do I reset VPN access?", "C1", "team:thread:C1:1.2", "event-1", "1.2"
+        )
+
+        assert result == {"id": "job-1", "status": "pending"}
+        payload = submitted["payload"]
+        assert payload["operator_answer"] == "Use the portal."
+        assert payload["sources"] == [{"source": "operator_rule", "rule_id": "vpn"}]
+        assert payload["context"] == ""
+        assert payload["question"] == "How do I reset VPN access?"
+        assert payload["request_id"] == "event-1"
+        assert payload["conversation_id"] == "team:thread:C1:1.2"
+        assert payload["slack"] == {"channel": "C1", "thread_ts": "1.2"}
+
+    def test_unmatched_slack_question_uses_retrieval_without_pinned_answer(self, monkeypatch):
+        self._install_engine(monkeypatch, engine(rule("vpn", ["reset vpn"])))
+        monkeypatch.setattr(
+            rag_module.vector_store, "similarity_search",
+            lambda _: [{"content": "Doc", "metadata": {"source": "slack", "channel_id": "C1"}}],
+        )
+        submitted = {}
+        def fake_submit(payload):
+            submitted["payload"] = payload
+            return {"id": "job-2", "status": "pending"}
+        monkeypatch.setattr(rag_module.agent_runtime, "submit", fake_submit)
+
+        rag_module.rag_engine.submit_slack("What is RAG?", "C1", "team:thread:C1:1.2", "event-2", "1.2")
+
+        payload = submitted["payload"]
+        assert "operator_answer" not in payload
+        assert "Doc" in payload["context"]
+        assert payload["slack"] == {"channel": "C1", "thread_ts": "1.2"}
