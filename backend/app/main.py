@@ -112,6 +112,33 @@ class ConversationDetailResponse(BaseModel):
     offset: int
 
 
+class DocumentSummary(BaseModel):
+    id: int
+    title: str
+    source: str
+    created_at: Optional[datetime] = None
+    content_preview: Optional[str] = None
+
+
+class DocumentListResponse(BaseModel):
+    items: List[DocumentSummary]
+    total: int
+    limit: int
+    offset: int
+
+
+class DocumentDetail(BaseModel):
+    id: int
+    title: str
+    content: str
+    source: str
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
 # Startup/Shutdown Events
 @app.on_event("startup")
 async def startup_event():
@@ -196,25 +223,45 @@ async def add_document(doc: DocumentRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/api/documents")
-async def list_documents(db: Session = Depends(get_db)):
-    """
-    List all documents in the knowledge base
-    """
-    try:
-        documents = db.query(Document).all()
-        return [
-            {
-                "id": doc.id,
-                "title": doc.title,
-                "source": doc.source,
-                "created_at": doc.created_at
-            }
-            for doc in documents
-        ]
-    except Exception as e:
-        logger.error(f"Error listing documents: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+@app.get("/api/documents", response_model=DocumentListResponse)
+async def list_documents(
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    source: str = None,
+    db: Session = Depends(get_db),
+):
+    """List documents in the knowledge base, most recently created first."""
+    base = db.query(Document)
+    if source:
+        base = base.filter(Document.source == source)
+
+    total = base.count()
+    documents = (
+        base.order_by(Document.created_at.desc(), Document.id.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+    items = [
+        DocumentSummary(
+            id=doc.id,
+            title=doc.title,
+            source=doc.source,
+            created_at=doc.created_at,
+            content_preview=doc.content[:120] if doc.content else None,
+        )
+        for doc in documents
+    ]
+    return DocumentListResponse(items=items, total=total, limit=limit, offset=offset)
+
+
+@app.get("/api/documents/{document_id}", response_model=DocumentDetail)
+async def get_document(document_id: int, db: Session = Depends(get_db)):
+    """Return one document with its full content."""
+    doc = db.query(Document).filter(Document.id == document_id).first()
+    if doc is None:
+        raise HTTPException(status_code=404, detail="Document not found")
+    return doc
 
 
 @app.get("/api/messages", response_model=List[MessageResponse])
