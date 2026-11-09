@@ -16,6 +16,19 @@ export interface Document {
   title: string
   source: string
   created_at: string
+  content_preview?: string | null
+}
+
+export interface DocumentDetail extends Document {
+  content: string
+  updated_at?: string | null
+}
+
+export interface DocumentListResponse {
+  items: Document[]
+  total: number
+  limit: number
+  offset: number
 }
 
 export interface DocumentRequest {
@@ -55,8 +68,28 @@ export async function askQuestion(
   return response.json()
 }
 
-export async function listDocuments(): Promise<Document[]> {
-  const response = await fetch(`${API_BASE_URL}/api/documents`)
+export async function listDocuments(
+  limit?: number,
+  offset?: number,
+  source?: string
+): Promise<DocumentListResponse> {
+  const params = new URLSearchParams()
+  if (limit !== undefined) params.append('limit', limit.toString())
+  if (offset !== undefined) params.append('offset', offset.toString())
+  if (source) params.append('source', source)
+
+  const url = `${API_BASE_URL}/api/documents${params.toString() ? `?${params}` : ''}`
+  const response = await fetch(url)
+
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status}`)
+  }
+
+  return response.json()
+}
+
+export async function getDocument(id: number): Promise<DocumentDetail> {
+  const response = await fetch(`${API_BASE_URL}/api/documents/${id}`)
 
   if (!response.ok) {
     throw new Error(`API error: ${response.status}`)
