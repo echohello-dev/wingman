@@ -62,7 +62,7 @@ class VectorStore:
     def add_documents(self, texts: List[str], metadatas: List[Dict[str, Any]] = None):
         """Add documents to the vector store"""
         self._ensure_initialized()
-        if not self.vector_store:
+        if self.vector_store is None:
             raise RuntimeError("Vector store not initialized")
         
         return self.vector_store.add_texts(texts=texts, metadatas=metadatas)
@@ -71,7 +71,7 @@ class VectorStore:
                           channel_id: str = None) -> List[Dict[str, Any]]:
         """Search within a channel before limiting results, or globally if unscoped."""
         self._ensure_initialized()
-        if not self.vector_store:
+        if self.vector_store is None:
             raise RuntimeError("Vector store not initialized")
         
         k = k or settings.RETRIEVAL_TOP_K
