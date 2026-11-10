@@ -195,7 +195,7 @@ class TestSlackShortCircuit:
         self._install_engine(monkeypatch, engine(rule("vpn", ["reset vpn"])))
         monkeypatch.setattr(
             rag_module.vector_store, "similarity_search",
-            lambda _: [{"content": "Doc", "metadata": {"source": "slack", "channel_id": "C1"}}],
+            lambda _, **kwargs: [{"content": "Doc", "metadata": {"source": "slack", "channel_id": "C1"}}],
         )
         submitted = {}
         def fake_submit(payload):

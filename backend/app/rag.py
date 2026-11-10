@@ -93,7 +93,8 @@ class RAGEngine:
     
     def _agent_payload(self, question: str, channel_id=None, conversation_id=None,
                        request_id=None, slack=None):
-        results = vector_store.similarity_search(question)
+        search_options = {"channel_id": channel_id} if channel_id else {}
+        results = vector_store.similarity_search(question, **search_options)
         if channel_id:
             results = [r for r in results if r.get("metadata", {}).get("channel_id") == channel_id]
         identifier = request_id or agent_runtime.request_id()

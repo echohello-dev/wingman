@@ -67,14 +67,16 @@ class VectorStore:
         
         return self.vector_store.add_texts(texts=texts, metadatas=metadatas)
     
-    def similarity_search(self, query: str, k: int = None) -> List[Dict[str, Any]]:
-        """Search for similar documents"""
+    def similarity_search(self, query: str, k: int = None, *,
+                          channel_id: str = None) -> List[Dict[str, Any]]:
+        """Search within a channel before limiting results, or globally if unscoped."""
         self._ensure_initialized()
         if not self.vector_store:
             raise RuntimeError("Vector store not initialized")
         
         k = k or settings.RETRIEVAL_TOP_K
-        results = self.vector_store.similarity_search(query, k=k)
+        search_options = {"filter": {"channel_id": channel_id}} if channel_id else {}
+        results = self.vector_store.similarity_search(query, k=k, **search_options)
         
         return [
             {
