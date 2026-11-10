@@ -39,6 +39,7 @@ def test_rag_routes_retrieved_context_and_stable_slack_identity(monkeypatch):
     submit = Mock(return_value={"id": "job-1", "status": "pending"})
     monkeypatch.setattr(agent_runtime, "submit", submit)
     module.rag_engine.submit_slack("Question", "C1", "team:thread:C1:1.2", "event-1", "1.2")
+    vector.similarity_search.assert_called_once_with("Question", channel_id="C1")
     payload = submit.call_args.args[0]
     assert payload["request_id"] == "event-1"
     assert payload["conversation_id"] == "team:thread:C1:1.2"
