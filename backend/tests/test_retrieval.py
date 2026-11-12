@@ -1,18 +1,20 @@
 """Indexing and retrieval regressions using local Chroma and fixed embeddings."""
 import importlib.util
-from pathlib import Path
+import json
 import sys
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock
 
 import chromadb
+import pytest
 from chromadb.config import Settings as ChromaSettings
+from chromadb.telemetry.product.posthog import Posthog
 from langchain_community.vectorstores import Chroma
 from langchain_core.embeddings import Embeddings
-import pytest
-from chromadb.telemetry.product.posthog import Posthog
+from pydantic import ValidationError
 
-from app.config import settings
+from app.config import Settings, settings
 from app.rules import RuleEngine
 from app.vector_store import VectorStore
 
@@ -35,6 +37,7 @@ class FixtureEmbeddings(Embeddings):
 @pytest.fixture
 def empty_vector(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "RETRIEVAL_TOP_K", 2)
+    monkeypatch.setattr(settings, "RETRIEVAL_MAX_DISTANCE", None)
     monkeypatch.setattr(Posthog, "capture", lambda *args, **kwargs: None)
     client = chromadb.PersistentClient(
         path=str(tmp_path), settings=ChromaSettings(anonymized_telemetry=False),
@@ -63,7 +66,11 @@ def vector(empty_vector):
 
 
 @pytest.mark.parametrize("channel_id", [None, "CTARGET"])
-def test_search_empty_collection_returns_no_matches(empty_vector, channel_id):
+@pytest.mark.parametrize("max_distance", [None, 1.0])
+def test_search_empty_collection_returns_no_matches(
+    empty_vector, monkeypatch, channel_id, max_distance,
+):
+    monkeypatch.setattr(settings, "RETRIEVAL_MAX_DISTANCE", max_distance)
     assert empty_vector.similarity_search(
         "How do I connect?", channel_id=channel_id,
     ) == []
@@ -75,7 +82,11 @@ def test_first_document_can_be_indexed_and_retrieved(empty_vector):
     )
     assert len(ids) == 1
     assert empty_vector.similarity_search("How do I connect?", channel_id="CTARGET") == [
-        {"content": "Target channel first", "metadata": {"source": "slack", "channel_id": "CTARGET"}},
+        {
+            "content": "Target channel first",
+            "metadata": {"source": "slack", "channel_id": "CTARGET"},
+            "distance": 1.0,
+        },
     ]
 
 
@@ -102,6 +113,44 @@ def test_unscoped_search_preserves_global_ranking_and_explicit_k(vector):
     assert [item["content"] for item in results] == [
         "Other channel first", "Other channel second", "Shared document",
     ]
+    assert [item["distance"] for item in results] == pytest.approx([0.0, 0.01, 0.04])
+
+
+def test_distance_cutoff_is_inclusive_and_preserves_channel_scope(vector, monkeypatch):
+    query = "How do I connect?"
+    before = vector.similarity_search(query, channel_id="CTARGET")
+    monkeypatch.setattr(settings, "RETRIEVAL_MAX_DISTANCE", 1.0)
+    after = vector.similarity_search(query, channel_id="CTARGET")
+
+    assert [item["distance"] for item in before] == [1.0, 4.0]
+    assert after == [before[0]]
+    print(json.dumps({
+        "query": query,
+        "channel_id": "CTARGET",
+        "top_k": 2,
+        "max_distance": 1.0,
+        "before": before,
+        "after": after,
+    }, indent=2))
+
+
+def test_zero_distance_cutoff_keeps_only_exact_vector_matches(vector, monkeypatch):
+    monkeypatch.setattr(settings, "RETRIEVAL_MAX_DISTANCE", 0.0)
+    results = vector.similarity_search("How do I connect?", k=5)
+    assert [item["content"] for item in results] == ["Other channel first"]
+    assert results[0]["distance"] == 0.0
+
+
+@pytest.mark.parametrize("value", [-1, "nan", "inf", "-inf", "invalid"])
+def test_invalid_distance_config_is_rejected(value):
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None, RETRIEVAL_MAX_DISTANCE=value)
+
+
+@pytest.mark.parametrize("value", [None, 0, "1.5"])
+def test_distance_config_accepts_unset_or_nonnegative_finite_values(value):
+    config = Settings(_env_file=None, RETRIEVAL_MAX_DISTANCE=value)
+    assert config.RETRIEVAL_MAX_DISTANCE == (float(value) if value is not None else None)
 
 
 def test_empty_channel_does_not_fall_back_to_global_results(vector):
@@ -109,7 +158,11 @@ def test_empty_channel_does_not_fall_back_to_global_results(vector):
 
 
 @pytest.mark.parametrize("path", ["api", "slack"])
-def test_rag_payload_uses_scoped_matches(vector, monkeypatch, path):
+@pytest.mark.parametrize("max_distance,expected_count", [(None, 2), (1.0, 1), (0.0, 0)])
+def test_rag_payload_uses_scoped_matches(
+    vector, monkeypatch, path, max_distance, expected_count,
+):
+    monkeypatch.setattr(settings, "RETRIEVAL_MAX_DISTANCE", max_distance)
     monkeypatch.setitem(sys.modules, "app.vector_store", SimpleNamespace(vector_store=vector))
     spec = importlib.util.spec_from_file_location(
         "retrieval_rag_under_test", Path(__file__).parents[1] / "app/rag.py",
@@ -134,10 +187,11 @@ def test_rag_payload_uses_scoped_matches(vector, monkeypatch, path):
         payload = submit.call_args.args[0]
         assert payload["slack"] == {"channel": "CTARGET", "thread_ts": "1.2"}
 
-    assert payload["context"] == (
-        "From slack:\nTarget channel first\n\nFrom slack:\nTarget channel second"
-    )
+    expected_context = [
+        "From slack:\nTarget channel first", "From slack:\nTarget channel second",
+    ]
+    assert payload["context"] == "\n\n".join(expected_context[:expected_count])
     assert payload["sources"] == [
         {"source": "slack", "channel_id": "CTARGET"},
         {"source": "slack", "channel_id": "CTARGET"},
-    ]
+    ][:expected_count]
