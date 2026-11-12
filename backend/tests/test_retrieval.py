@@ -1,4 +1,4 @@
-"""Channel retrieval regressions using local Chroma and fixed embeddings."""
+"""Indexing and retrieval regressions using local Chroma and fixed embeddings."""
 import importlib.util
 from pathlib import Path
 import sys
@@ -33,7 +33,7 @@ class FixtureEmbeddings(Embeddings):
 
 
 @pytest.fixture
-def vector(tmp_path, monkeypatch):
+def empty_vector(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "RETRIEVAL_TOP_K", 2)
     monkeypatch.setattr(Posthog, "capture", lambda *args, **kwargs: None)
     client = chromadb.PersistentClient(
@@ -45,7 +45,12 @@ def vector(tmp_path, monkeypatch):
         embedding_function=FixtureEmbeddings(),
     )
     store._initialized = True
-    store.vector_store.add_texts(
+    return store
+
+
+@pytest.fixture
+def vector(empty_vector):
+    empty_vector.add_documents(
         ["Other channel first", "Other channel second", "Shared document",
          "Target channel first", "Target channel second"],
         [{"source": "slack", "channel_id": "COTHER"},
@@ -54,7 +59,35 @@ def vector(tmp_path, monkeypatch):
          {"source": "slack", "channel_id": "CTARGET"},
          {"source": "slack", "channel_id": "CTARGET"}],
     )
-    return store
+    return empty_vector
+
+
+@pytest.mark.parametrize("channel_id", [None, "CTARGET"])
+def test_search_empty_collection_returns_no_matches(empty_vector, channel_id):
+    assert empty_vector.similarity_search(
+        "How do I connect?", channel_id=channel_id,
+    ) == []
+
+
+def test_first_document_can_be_indexed_and_retrieved(empty_vector):
+    ids = empty_vector.add_documents(
+        ["Target channel first"], [{"source": "slack", "channel_id": "CTARGET"}],
+    )
+    assert len(ids) == 1
+    assert empty_vector.similarity_search("How do I connect?", channel_id="CTARGET") == [
+        {"content": "Target channel first", "metadata": {"source": "slack", "channel_id": "CTARGET"}},
+    ]
+
+
+@pytest.mark.parametrize("operation", ["add", "search"])
+def test_missing_adapter_still_raises(monkeypatch, operation):
+    store = VectorStore()
+    monkeypatch.setattr(store, "_ensure_initialized", lambda: None)
+    with pytest.raises(RuntimeError, match="Vector store not initialized"):
+        if operation == "add":
+            store.add_documents(["Target channel first"])
+        else:
+            store.similarity_search("How do I connect?")
 
 
 def test_channel_filter_runs_before_top_k(vector):
