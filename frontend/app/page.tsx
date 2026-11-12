@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import ConversationsPanel from '@/components/conversations-panel'
 import {
   askQuestion,
   getDocument,
@@ -24,7 +25,7 @@ export default function Home() {
   const [question, setQuestion] = useState('')
   const [answer, setAnswer] = useState('')
   const [loading, setLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState<'ask' | 'documents' | 'messages'>('ask')
+  const [activeTab, setActiveTab] = useState<'ask' | 'documents' | 'conversations'>('ask')
   const [documents, setDocuments] = useState<Document[]>([])
   const [documentsTotal, setDocumentsTotal] = useState(0)
   const [documentsLoading, setDocumentsLoading] = useState(false)
@@ -123,14 +124,14 @@ export default function Home() {
               Documents
             </button>
             <button
-              onClick={() => setActiveTab('messages')}
+              onClick={() => setActiveTab('conversations')}
               className={`px-6 py-2 rounded-md transition-colors ${
-                activeTab === 'messages'
+                activeTab === 'conversations'
                   ? 'bg-primary-500 text-white'
                   : 'text-gray-600 hover:bg-gray-100'
               }`}
             >
-              Messages
+              Conversations
             </button>
           </div>
         </div>
@@ -287,20 +288,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* Messages Tab */}
-        {activeTab === 'messages' && (
-          <div className="max-w-3xl mx-auto">
-            <div className="bg-white rounded-xl shadow-lg p-8">
-              <h2 className="text-2xl font-semibold text-gray-800 mb-6">
-                Recent Slack Messages
-              </h2>
-              <p className="text-gray-600">
-                View and manage Slack messages that have been processed by Wingman.
-                Messages are automatically indexed when the bot is mentioned or receives a DM.
-              </p>
-            </div>
-          </div>
-        )}
+        {activeTab === 'conversations' && <ConversationsPanel />}
 
         <footer className="mt-16 text-center text-gray-600">
           <p className="mb-2">

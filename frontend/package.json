@@ -3,6 +3,7 @@
   "version": "1.1.0",
   "private": true,
   "scripts": {
+    "test": "bun test --preload ./tests/setup.ts",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -20,8 +21,11 @@
     "typescript": "^5"
   },
   "devDependencies": {
+    "@testing-library/react": "^16.3.3",
+    "@types/bun": "^1.4.4",
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
+    "happy-dom": "^21.0.4",
     "tailwindcss": "^4.1.18"
   }
 }

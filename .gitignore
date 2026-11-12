@@ -76,6 +76,8 @@ out/
 *.swo
 *~
 .DS_Store
+.tmp/
+*.tsbuildinfo
 
 # OS
 Thumbs.db

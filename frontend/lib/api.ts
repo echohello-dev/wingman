@@ -45,6 +45,57 @@ export interface Message {
   text: string
 }
 
+export interface Conversation {
+  conversation_id: string
+  channel_id: string | null
+  message_count: number
+  first_message_at: string | null
+  last_message_at: string | null
+  last_message_preview: string | null
+}
+
+export interface ConversationTurn {
+  id: number
+  conversation_id: string
+  user_id: string | null
+  channel_id: string | null
+  role: string
+  message: string
+  message_ts: string | null
+  created_at: string | null
+}
+
+export interface ConversationListResponse {
+  items: Conversation[]
+  total: number
+  limit: number
+  offset: number
+}
+
+export interface ConversationDetailResponse {
+  conversation_id: string
+  items: ConversationTurn[]
+  total: number
+  limit: number
+  offset: number
+}
+
+export async function listConversations(limit: number, offset: number): Promise<ConversationListResponse> {
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) })
+  const response = await fetch(`${API_BASE_URL}/api/conversations?${params}`)
+  if (!response.ok) throw new Error(`API error: ${response.status}`)
+  return response.json()
+}
+
+export async function getConversation(
+  id: string, limit: number, offset: number
+): Promise<ConversationDetailResponse> {
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) })
+  const response = await fetch(`${API_BASE_URL}/api/conversations/${encodeURIComponent(id)}?${params}`)
+  if (!response.ok) throw new Error(`API error: ${response.status}`)
+  return response.json()
+}
+
 // API functions
 export async function askQuestion(
   question: string,
