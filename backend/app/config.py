@@ -2,7 +2,7 @@
 Configuration management for Wingman backend
 """
 from pydantic_settings import BaseSettings
-from pydantic import ConfigDict
+from pydantic import ConfigDict, Field
 from typing import Optional
 
 
@@ -60,6 +60,9 @@ class Settings(BaseSettings):
     CHUNK_SIZE: int = 1000
     CHUNK_OVERLAP: int = 200
     RETRIEVAL_TOP_K: int = 5
+    RETRIEVAL_MAX_DISTANCE: Optional[float] = Field(
+        default=None, ge=0, allow_inf_nan=False,
+    )
     
     # Conversation Memory
     CONVERSATION_MEMORY_WINDOW: int = 10  # Number of recent messages to include

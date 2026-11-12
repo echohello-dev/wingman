@@ -69,21 +69,28 @@ class VectorStore:
     
     def similarity_search(self, query: str, k: int = None, *,
                           channel_id: str = None) -> List[Dict[str, Any]]:
-        """Search within a channel before limiting results, or globally if unscoped."""
+        """Return nearest chunks with raw distances, excluding weak matches if configured.
+
+        Channel scope is applied before top-k. Lower Chroma distances are closer;
+        the optional cutoff is inclusive and does not change the ranking.
+        """
         self._ensure_initialized()
         if self.vector_store is None:
             raise RuntimeError("Vector store not initialized")
         
         k = k or settings.RETRIEVAL_TOP_K
         search_options = {"filter": {"channel_id": channel_id}} if channel_id else {}
-        results = self.vector_store.similarity_search(query, k=k, **search_options)
+        results = self.vector_store.similarity_search_with_score(query, k=k, **search_options)
+        max_distance = settings.RETRIEVAL_MAX_DISTANCE
         
         return [
             {
                 "content": doc.page_content,
-                "metadata": doc.metadata
+                "metadata": doc.metadata,
+                "distance": float(distance),
             }
-            for doc in results
+            for doc, distance in results
+            if max_distance is None or distance <= max_distance
         ]
     
     def delete_collection(self):
