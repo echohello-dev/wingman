@@ -2,7 +2,7 @@
 Configuration management for Wingman backend
 """
 from pydantic_settings import BaseSettings
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, model_validator
 from typing import Optional
 
 
@@ -57,8 +57,8 @@ class Settings(BaseSettings):
     
     # RAG Configuration
     EMBEDDING_MODEL: str = "text-embedding-ada-002"
-    CHUNK_SIZE: int = 1000
-    CHUNK_OVERLAP: int = 200
+    CHUNK_SIZE: int = Field(default=1000, gt=0)
+    CHUNK_OVERLAP: int = Field(default=200, ge=0)
     RETRIEVAL_TOP_K: int = 5
     RETRIEVAL_MAX_DISTANCE: Optional[float] = Field(
         default=None, ge=0, allow_inf_nan=False,
@@ -73,6 +73,12 @@ class Settings(BaseSettings):
     # The file wins when both are set. Empty means no rules.
     OPERATOR_RULES_JSON: Optional[str] = None
     OPERATOR_RULES_FILE: Optional[str] = None
+
+    @model_validator(mode="after")
+    def validate_chunk_overlap(self):
+        if self.CHUNK_OVERLAP >= self.CHUNK_SIZE:
+            raise ValueError("CHUNK_OVERLAP must be smaller than CHUNK_SIZE")
+        return self
 
 
 settings = Settings()

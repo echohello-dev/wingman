@@ -34,6 +34,82 @@ class FixtureEmbeddings(Embeddings):
         return [0.0, 1.0]
 
 
+@pytest.mark.parametrize("config", [
+    {"CHUNK_SIZE": 0}, {"CHUNK_SIZE": -1},
+    {"CHUNK_OVERLAP": -1},
+    {"CHUNK_SIZE": 10, "CHUNK_OVERLAP": 10},
+    {"CHUNK_SIZE": 10, "CHUNK_OVERLAP": 11},
+])
+def test_invalid_chunk_settings_are_rejected(config):
+    with pytest.raises(ValidationError):
+        Settings(_env_file=None, **config)
+
+
+@pytest.mark.parametrize("size,overlap", [(1000, 200), (1, 0), (10, 0), (10, 9)])
+def test_valid_chunk_settings_are_accepted(size, overlap):
+    config = Settings(_env_file=None, CHUNK_SIZE=size, CHUNK_OVERLAP=overlap)
+    assert (config.CHUNK_SIZE, config.CHUNK_OVERLAP) == (size, overlap)
+
+
+@pytest.mark.parametrize("text,size,overlap,expected", [
+    ("", 5, 2, []),
+    ("a", 5, 2, ["a"]),
+    ("abcd", 5, 2, ["abcd"]),
+    ("abcde", 5, 2, ["abcde"]),
+    ("abcdef", 5, 2, ["abcde", "def"]),
+    ("abcdefgh", 5, 2, ["abcde", "defgh"]),
+    ("abcdefghi", 5, 2, ["abcde", "defgh", "ghi"]),
+    ("abcdefghij", 5, 0, ["abcde", "fghij"]),
+    ("abcdef", 5, 4, ["abcde", "bcdef"]),
+    ("abc", 1, 0, ["a", "b", "c"]),
+])
+def test_document_chunks_stop_after_covering_content(
+    rag_module, monkeypatch, text, size, overlap, expected,
+):
+    monkeypatch.setattr(settings, "CHUNK_SIZE", size)
+    monkeypatch.setattr(settings, "CHUNK_OVERLAP", overlap)
+    assert rag_module.rag_engine._split_text(text) == expected
+
+
+def test_document_indexing_avoids_redundant_tail_chunks(empty_vector, rag_module, monkeypatch):
+    class DocumentEmbeddings(Embeddings):
+        # Fixed vectors expose fragment coverage, not production relevance.
+        def embed_documents(self, texts):
+            return [[float(len(content) - len(text)), 1.0] for text in texts]
+
+        def embed_query(self, text):
+            return [0.0, 1.0]
+
+    content = "Reset VPN via IT portal."
+    query = "How do I reset VPN?"
+    size, overlap = 24, 20
+    monkeypatch.setattr(settings, "CHUNK_SIZE", size)
+    monkeypatch.setattr(settings, "CHUNK_OVERLAP", overlap)
+    empty_vector.vector_store._embedding_function = DocumentEmbeddings()
+    legacy_chunks = [content[start:start + size] for start in range(0, len(content), size - overlap)]
+    legacy_ids = empty_vector.add_documents(
+        legacy_chunks,
+        [{"source": "docs", "title": "VPN guide", "chunk": i} for i in range(len(legacy_chunks))],
+    )
+    before = empty_vector.similarity_search(query, k=10)
+    assert len(before) == 6
+    empty_vector.vector_store.delete(ids=legacy_ids)
+
+    rag_module.rag_engine.index_document("VPN guide", content)
+    after = empty_vector.similarity_search(query, k=10)
+    assert after == [{
+        "content": content,
+        "metadata": {"source": "docs", "title": "VPN guide", "chunk": 0},
+        "distance": 0.0,
+    }]
+    assert empty_vector.vector_store._collection.count() == 1
+    print(json.dumps({
+        "query": query, "chunk_size": size, "chunk_overlap": overlap,
+        "before": before, "after": after,
+        "note": "Fixed-vector distances show fragment coverage, not production relevance.",
+    }, indent=2))
+
+
 @pytest.fixture
 def empty_vector(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "RETRIEVAL_TOP_K", 2)
