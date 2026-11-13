@@ -44,6 +44,13 @@ those collections from their original sources to remove historical duplicates.
 Re-indexing only updates messages present in the supplied thread; it does not
 remove chunks for deleted Slack messages or handle Slack edit/delete events.
 
+`POST /api/index/thread?channel_id=...&thread_ts=...` indexes the saved root
+message and its saved replies in timestamp order, within the requested channel.
+The root is included even when its `thread_ts` is absent. A root-only thread is
+valid; saved replies can also be indexed when the root was never stored. If
+neither the root nor any replies are saved in that channel, the API returns
+HTTP 404. It does not fetch missing messages from Slack.
+
 The fixture tests use temporary local Chroma storage and fixed embeddings.
 They make no embedding, model or Slack calls. To show the captured transcript
 with the query, chunks and distances before and after filtering or repeated
