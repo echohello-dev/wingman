@@ -320,8 +320,7 @@ async def list_conversations(
     items = []
     for conversation_id, row_channel_id, count, first_at, last_at in rows:
         last_row = (
-            db.query(ConversationHistory)
-            .filter(ConversationHistory.conversation_id == conversation_id)
+            base.filter(ConversationHistory.conversation_id == conversation_id)
             .order_by(
                 ConversationHistory.created_at.desc(), ConversationHistory.id.desc()
             )
