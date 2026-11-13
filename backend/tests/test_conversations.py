@@ -114,6 +114,60 @@ class TestListConversations:
         assert data["total"] == 1
         assert data["items"][0]["conversation_id"] == "conv-b"
 
+    @pytest.mark.parametrize("channel_id", ["C1", "C2"])
+    def test_channel_filter_scopes_preview_for_shared_conversation(self, channel_id):
+        other_channel = "C2" if channel_id == "C1" else "C1"
+        with TestingSession() as db:
+            db.add_all([
+                _turn("shared", channel_id, "user", "Question in requested channel", 20),
+                _turn("shared", channel_id, "assistant", "Answer in requested channel", 21),
+                _turn("shared", other_channel, "assistant", "Answer in another channel", 30),
+            ])
+            db.commit()
+
+        response = client.get("/api/conversations", params={"channel_id": channel_id})
+        assert response.status_code == 200
+        summary = response.json()["items"][0]
+        assert summary == {
+            "conversation_id": "shared",
+            "channel_id": channel_id,
+            "message_count": 2,
+            "first_message_at": (BASE_TIME + timedelta(minutes=20)).isoformat(),
+            "last_message_at": (BASE_TIME + timedelta(minutes=21)).isoformat(),
+            "last_message_preview": "Answer in requested channel",
+        }
+
+    def test_unfiltered_preview_includes_latest_turn_across_channels(self):
+        with TestingSession() as db:
+            db.add_all([
+                _turn("shared", "C1", "user", "Earlier question", 20),
+                _turn("shared", "C2", "assistant", "Latest answer", 30),
+            ])
+            db.commit()
+
+        response = client.get("/api/conversations")
+        assert response.status_code == 200
+        summary = response.json()["items"][0]
+        assert summary["conversation_id"] == "shared"
+        assert summary["message_count"] == 2
+        assert summary["last_message_preview"] == "Latest answer"
+
+    def test_scoped_preview_breaks_timestamp_ties_by_latest_id(self):
+        with TestingSession() as db:
+            db.add(_turn("shared", "C1", "user", "Question", 20))
+            db.flush()
+            db.add(_turn("shared", "C1", "assistant", "Answer", 20))
+            db.flush()
+            db.add(_turn("shared", "C2", "assistant", "Other channel answer", 20))
+            db.commit()
+
+        response = client.get("/api/conversations?channel_id=C1")
+        assert response.status_code == 200
+        summary = response.json()["items"][0]
+        assert summary["conversation_id"] == "shared"
+        assert summary["message_count"] == 2
+        assert summary["last_message_preview"] == "Answer"
+
     def test_invalid_pagination_rejected(self):
         assert client.get("/api/conversations?limit=0").status_code == 422
         assert client.get("/api/conversations?limit=201").status_code == 422
