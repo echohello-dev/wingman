@@ -4,6 +4,13 @@ Wingman retrieves up to `RETRIEVAL_TOP_K` chunks, defaulting to 5. A request wit
 a channel ID searches only that channel before applying the limit. An unscoped
 request searches the whole collection.
 
+Documents are split into overlapping character windows. `CHUNK_SIZE` must be
+positive, and `CHUNK_OVERLAP` must be non-negative and smaller than `CHUNK_SIZE`.
+Invalid settings are rejected at startup, before indexing can begin. Splitting
+stops when a chunk reaches the end of the content; it does not index redundant
+trailing overlap fragments. Existing stored fragments are not removed by this
+change. Rebuild the collection from its original sources to remove them.
+
 Set `RETRIEVAL_MAX_DISTANCE` to exclude weak matches from the retrieved context.
 Leave it unset to keep all top-k matches, which preserves the default behaviour.
 Restart the backend and bot after changing the setting.

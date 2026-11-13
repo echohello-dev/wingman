@@ -228,8 +228,7 @@ class RAGEngine:
         vector_store.add_documents(chunks, metadatas)
     
     def _split_text(self, text: str) -> List[str]:
-        """Simple text splitter"""
-        # Simple implementation - split by paragraphs or size
+        """Split into overlapping character windows, stopping at the final chunk."""
         chunk_size = settings.CHUNK_SIZE
         overlap = settings.CHUNK_OVERLAP
         
@@ -240,6 +239,8 @@ class RAGEngine:
             end = start + chunk_size
             chunk = text[start:end]
             chunks.append(chunk)
+            if end >= len(text):
+                break
             start = end - overlap
         
         return chunks
