@@ -168,27 +168,41 @@ class RAGEngine:
 
     def index_slack_thread(self, messages: List[Dict[str, Any]], channel_id: str):
         """
-        Index a Slack thread for retrieval
+        Upsert Slack messages by channel and timestamp for retry-safe retrieval.
         
         Args:
             messages: List of message dictionaries
             channel_id: Channel ID where the thread exists
         """
-        texts = []
-        metadatas = []
-        
+        chunks = {}
         for msg in messages:
-            texts.append(msg.get("text", ""))
-            metadatas.append({
+            text = msg.get("text")
+            message_ts = msg.get("ts")
+            if not isinstance(text, str) or not text.strip():
+                continue
+            if not isinstance(message_ts, str) or not message_ts.strip():
+                logger.warning("Skipping Slack chunk without a message timestamp")
+                continue
+            metadata = {
                 "source": "slack",
                 "channel_id": channel_id,
-                "message_ts": msg.get("ts"),
+                "message_ts": message_ts,
                 "user_id": msg.get("user"),
                 "thread_ts": msg.get("thread_ts")
-            })
-        
-        if texts:
-            vector_store.add_documents(texts, metadatas)
+            }
+            # Root messages and some Slack events omit user/thread fields.
+            # Chroma metadata cannot contain None. Last occurrence wins if
+            # the same message appears more than once in this batch.
+            chunks[f"slack:{channel_id}:{message_ts}"] = (
+                text, {key: value for key, value in metadata.items() if value is not None},
+            )
+
+        if chunks:
+            vector_store.add_documents(
+                [text for text, _ in chunks.values()],
+                [metadata for _, metadata in chunks.values()],
+                ids=list(chunks),
+            )
     
     def index_document(self, title: str, content: str, source: str = "docs"):
         """

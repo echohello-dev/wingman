@@ -59,13 +59,15 @@ class VectorStore:
             logger.error("Error initializing vector store: %s", e)
             raise
     
-    def add_documents(self, texts: List[str], metadatas: List[Dict[str, Any]] = None):
-        """Add documents to the vector store"""
+    def add_documents(self, texts: List[str], metadatas: List[Dict[str, Any]] = None,
+                      *, ids: List[str] = None):
+        """Add chunks, replacing existing chunks when stable IDs are supplied."""
         self._ensure_initialized()
         if self.vector_store is None:
             raise RuntimeError("Vector store not initialized")
         
-        return self.vector_store.add_texts(texts=texts, metadatas=metadatas)
+        options = {"ids": ids} if ids is not None else {}
+        return self.vector_store.add_texts(texts=texts, metadatas=metadatas, **options)
     
     def similarity_search(self, query: str, k: int = None, *,
                           channel_id: str = None) -> List[Dict[str, Any]]:
