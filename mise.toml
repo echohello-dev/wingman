@@ -81,7 +81,7 @@ run = "uv run alembic current"
 [tasks.test-frontend]
 description = "Run frontend tests"
 dir = "frontend"
-run = "echo 'No frontend tests yet' && exit 0"
+run = "bun run test"
 
 [tasks.test]
 description = "Run all tests"
