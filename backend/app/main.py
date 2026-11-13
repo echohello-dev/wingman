@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
 import logging
@@ -381,14 +381,18 @@ async def index_thread(
     db: Session = Depends(get_db)
 ):
     """
-    Index a Slack thread for retrieval
+    Index a saved Slack root message and its replies for retrieval
     """
     try:
-        # Get messages from database
+        # Slack root events can omit thread_ts, so include the root by its
+        # own timestamp. Keep channel scope outside the OR for both paths.
         messages = db.query(SlackMessage).filter(
             SlackMessage.channel_id == channel_id,
-            SlackMessage.thread_ts == thread_ts
-        ).all()
+            or_(
+                SlackMessage.message_ts == thread_ts,
+                SlackMessage.thread_ts == thread_ts,
+            ),
+        ).order_by(SlackMessage.message_ts.asc(), SlackMessage.id.asc()).all()
         
         if not messages:
             raise HTTPException(status_code=404, detail="Thread not found")
@@ -411,6 +415,8 @@ async def index_thread(
             "message": f"Indexed {len(messages)} messages",
             "thread_ts": thread_ts
         }
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error indexing thread: {e}")
         raise HTTPException(status_code=500, detail=str(e))
