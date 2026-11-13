@@ -33,9 +33,21 @@ If every chunk is excluded, generation receives empty retrieved context. Pi
 conversation history can still contribute to an answer. This setting does not
 implement a refusal policy or guarantee that an answer is grounded.
 
+Slack thread indexing uses a stable chunk ID built from the channel ID and
+message timestamp. Re-indexing the same messages updates their content and
+embeddings instead of appending duplicates. This applies to the bot and the
+`/api/index/thread` endpoint through their shared RAG engine. Messages without
+text or a timestamp are skipped; absent user and thread metadata is omitted.
+
+Existing chunks stored with random IDs are not removed automatically. Rebuild
+those collections from their original sources to remove historical duplicates.
+Re-indexing only updates messages present in the supplied thread; it does not
+remove chunks for deleted Slack messages or handle Slack edit/delete events.
+
 The fixture tests use temporary local Chroma storage and fixed embeddings.
 They make no embedding, model or Slack calls. To show the captured transcript
-with the query, chunks and distances before and after filtering, run the backend
+with the query, chunks and distances before and after filtering or repeated
+thread indexing, run the backend
 gate with captured output for passing tests enabled.
 
 ```sh
