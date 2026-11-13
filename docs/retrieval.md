@@ -40,6 +40,37 @@ If every chunk is excluded, generation receives empty retrieved context. Pi
 conversation history can still contribute to an answer. This setting does not
 implement a refusal policy or guarantee that an answer is grounded.
 
+## Preview selected chunks
+
+`POST /api/retrieval/preview` shows the chunks selected by the shared vector
+store without generating an answer, running operator rules or enqueuing a Pi
+job. It uses the same channel scope, top-k and distance cutoff as questions.
+The request requires a non-blank `question`; `channel_id` is optional and must
+be non-blank when supplied. Surrounding whitespace is trimmed.
+
+```sh
+curl -sS http://localhost:8000/api/retrieval/preview \
+  -H 'Content-Type: application/json' \
+  -d '{"question":"How do I reset VPN?","channel_id":"CTARGET"}'
+```
+
+The response includes the normalised question and channel, `top_k`,
+`max_distance` (`null` when unset), and ranked `items`. Each item contains
+`content`, source `metadata` and raw Chroma `distance`. An unknown channel, empty
+collection or cutoff excluding every match returns HTTP 200 with an empty
+`items` list. Retrieval failures return HTTP 503. Invalid input returns HTTP 422.
+
+Use the preview to inspect source coverage and calibrate a cutoff against known
+questions. It reports the current retrieval policy; it does not override that
+policy per request or evaluate answer quality. Previewing still invokes the
+configured embedding provider for the query, so it can incur embedding costs.
+Like the existing document and message endpoints, this endpoint has no built-in
+authentication. Keep the management API behind trusted access controls. Omitting
+the channel searches all indexed content; a supplied channel is a search filter,
+not an authorisation check. The response contains full chunk text.
+
+## Saved Slack threads
+
 Slack thread indexing uses a stable chunk ID built from the channel ID and
 message timestamp. Re-indexing the same messages updates their content and
 embeddings instead of appending duplicates. This applies to the bot and the

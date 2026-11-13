@@ -2,11 +2,11 @@
 FastAPI main application
 """
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Annotated, Any, Dict, List, Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, StringConstraints
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
@@ -21,6 +21,7 @@ configure_logging(service="wingman-backend")
 from app.database import ConversationHistory, get_db, init_db, SlackMessage, Document
 from app.rag import rag_engine
 from app.slack_bot import slack_bot
+from app.vector_store import vector_store
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +56,28 @@ class QuestionResponse(BaseModel):
     answer: str
     sources: List[Dict[str, Any]]
     confidence: str
+
+
+NonBlankString = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
+
+
+class RetrievalPreviewRequest(BaseModel):
+    question: NonBlankString
+    channel_id: NonBlankString | None = None
+
+
+class RetrievedChunk(BaseModel):
+    content: str
+    metadata: Dict[str, Any]
+    distance: float
+
+
+class RetrievalPreviewResponse(BaseModel):
+    question: str
+    channel_id: str | None
+    top_k: int
+    max_distance: float | None
+    items: List[RetrievedChunk]
 
 
 class DocumentRequest(BaseModel):
@@ -193,6 +216,25 @@ async def ask_question(request: QuestionRequest):
     except Exception as e:
         logger.error(f"Error generating response: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/retrieval/preview", response_model=RetrievalPreviewResponse)
+def preview_retrieval(request: RetrievalPreviewRequest):
+    """Inspect selected chunks and distances without generating an answer."""
+    try:
+        items = vector_store.similarity_search(
+            request.question, channel_id=request.channel_id,
+        )
+        return RetrievalPreviewResponse(
+            question=request.question,
+            channel_id=request.channel_id,
+            top_k=settings.RETRIEVAL_TOP_K,
+            max_distance=settings.RETRIEVAL_MAX_DISTANCE,
+            items=items,
+        )
+    except Exception:
+        logger.exception("Retrieval preview failed")
+        raise HTTPException(status_code=503, detail="Retrieval is unavailable")
 
 
 @app.post("/api/documents")
