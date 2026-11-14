@@ -150,15 +150,18 @@ export async function askQuestion(
 export async function listDocuments(
   limit?: number,
   offset?: number,
-  source?: string
+  source?: string,
+  query?: string,
+  signal?: AbortSignal
 ): Promise<DocumentListResponse> {
   const params = new URLSearchParams()
   if (limit !== undefined) params.append('limit', limit.toString())
   if (offset !== undefined) params.append('offset', offset.toString())
   if (source) params.append('source', source)
+  if (query?.trim()) params.append('q', query.trim())
 
   const url = `${API_BASE_URL}/api/documents${params.toString() ? `?${params}` : ''}`
-  const response = await fetch(url)
+  const response = await fetch(url, { signal })
 
   if (!response.ok) {
     throw new Error(`API error: ${response.status}`)
@@ -167,8 +170,8 @@ export async function listDocuments(
   return response.json()
 }
 
-export async function getDocument(id: number): Promise<DocumentDetail> {
-  const response = await fetch(`${API_BASE_URL}/api/documents/${id}`)
+export async function getDocument(id: number, signal?: AbortSignal): Promise<DocumentDetail> {
+  const response = await fetch(`${API_BASE_URL}/api/documents/${id}`, { signal })
 
   if (!response.ok) {
     throw new Error(`API error: ${response.status}`)

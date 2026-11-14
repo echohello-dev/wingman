@@ -299,8 +299,13 @@ curl -sS --get http://localhost:8000/api/documents \
 Search and source filters combine before counting and pagination. The response
 keeps the existing `items`, `total`, `limit` and `offset` fields and newest-first
 ordering. A search with no matches returns an empty page with `total` set to zero. This searches
-saved PostgreSQL records and does not call Slack, embeddings or the model. The
-dashboard does not expose the search input yet.
+saved PostgreSQL records and does not call Slack, embeddings or the model.
+
+In the dashboard, open **Documents**, enter text in **Search documents** and
+submit **Search**. Results are paginated in groups of 20; **Previous** and
+**Next** keep the submitted search. **Clear search** returns to the first page
+of all saved documents. Typing does not send a request until the form is
+submitted. Selecting a result displays its full saved content.
 
 ## Next Steps
 
