@@ -1,4 +1,4 @@
-"""Tests for the document list and detail endpoints."""
+"""Offline tests for document creation, listing and detail endpoints."""
 import os
 
 os.environ.setdefault("SLACK_BOT_TOKEN", "[REDACTED]")
@@ -15,6 +15,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.database import Base, Document, get_db
+from app.rag import rag_engine
 
 with patch("slack_sdk.WebClient.auth_test", return_value={
     "ok": True, "bot_id": "BTEST", "user_id": "UTEST", "team_id": "TTEST"
@@ -149,3 +150,48 @@ class TestDocumentDetail:
         response = client.get("/api/documents/999999")
         assert response.status_code == 404
         assert response.json()["detail"] == "Document not found"
+
+
+class TestCreateDocument:
+    @pytest.mark.parametrize("field", ["title", "content", "source"])
+    @pytest.mark.parametrize("value", ["", " \n\t ", "\u2003\u00a0", None, 123])
+    def test_rejects_invalid_fields_without_writes_or_indexing(self, field, value):
+        payload = {"title": "VPN guide", "content": "Reset via IT.", "source": "api"}
+        payload[field] = value
+        with patch.object(rag_engine, "index_document") as index:
+            response = client.post("/api/documents", json=payload)
+        assert response.status_code == 422
+        assert any(error["loc"] == ["body", field] for error in response.json()["detail"])
+        index.assert_not_called()
+        with TestingSession() as db:
+            assert db.query(Document).count() == 3
+
+    @pytest.mark.parametrize("field", ["title", "content"])
+    def test_rejects_missing_required_fields(self, field):
+        payload = {"title": "VPN guide", "content": "Reset via IT."}
+        del payload[field]
+        with patch.object(rag_engine, "index_document") as index:
+            response = client.post("/api/documents", json=payload)
+        assert response.status_code == 422
+        index.assert_not_called()
+        with TestingSession() as db:
+            assert db.query(Document).count() == 3
+
+    @pytest.mark.parametrize("source", [None, " \tdocs\n "])
+    def test_creates_readable_document_and_indexes_preserved_content(self, source):
+        content = "\n    def reset_vpn():\n        return 'IT portal'\n\n"
+        payload = {"title": " \tVPN guide\n ", "content": content}
+        if source is not None:
+            payload["source"] = source
+        expected_source = "api" if source is None else "docs"
+        with patch.object(rag_engine, "index_document") as index:
+            response = client.post("/api/documents", json=payload)
+        assert response.status_code == 200
+        index.assert_called_once_with("VPN guide", content, expected_source)
+        document_id = response.json()["id"]
+        detail = client.get(f"/api/documents/{document_id}").json()
+        assert detail["title"] == "VPN guide"
+        assert detail["content"] == content
+        assert detail["source"] == expected_source
+        with TestingSession() as db:
+            assert db.query(Document).count() == 4
