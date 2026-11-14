@@ -11,6 +11,34 @@ export interface QuestionResponse {
   confidence: string
 }
 
+export interface RetrievalPreview {
+  question: string
+  channel_id: string | null
+  top_k: number
+  max_distance: number | null
+  items: Array<{
+    content: string
+    metadata: Record<string, unknown>
+    distance: number
+  }>
+}
+
+export async function previewRetrieval(
+  question: string, channelId?: string, signal?: AbortSignal
+): Promise<RetrievalPreview> {
+  const response = await fetch(`${API_BASE_URL}/api/retrieval/preview`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      question: question.trim(),
+      channel_id: channelId?.trim() || undefined,
+    }),
+    signal,
+  })
+  if (!response.ok) throw new Error(`API error: ${response.status}`)
+  return response.json()
+}
+
 export interface Document {
   id: number
   title: string

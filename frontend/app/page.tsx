@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import ConversationsPanel from '@/components/conversations-panel'
+import RetrievalPanel from '@/components/retrieval-panel'
 import {
   askQuestion,
   getDocument,
@@ -25,7 +26,7 @@ export default function Home() {
   const [question, setQuestion] = useState('')
   const [answer, setAnswer] = useState('')
   const [loading, setLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState<'ask' | 'documents' | 'conversations'>('ask')
+  const [activeTab, setActiveTab] = useState<'ask' | 'documents' | 'conversations' | 'retrieval'>('ask')
   const [documents, setDocuments] = useState<Document[]>([])
   const [documentsTotal, setDocumentsTotal] = useState(0)
   const [documentsLoading, setDocumentsLoading] = useState(false)
@@ -102,7 +103,7 @@ export default function Home() {
 
         {/* Tab Navigation */}
         <div className="flex justify-center mb-8">
-          <div className="bg-white rounded-lg shadow-md p-1 inline-flex">
+          <div className="bg-white rounded-lg shadow-md p-1 inline-flex flex-wrap justify-center">
             <button
               onClick={() => setActiveTab('ask')}
               className={`px-6 py-2 rounded-md transition-colors ${
@@ -132,6 +133,16 @@ export default function Home() {
               }`}
             >
               Conversations
+            </button>
+            <button
+              onClick={() => setActiveTab('retrieval')}
+              className={`px-6 py-2 rounded-md transition-colors ${
+                activeTab === 'retrieval'
+                  ? 'bg-primary-500 text-white'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              Retrieval
             </button>
           </div>
         </div>
@@ -289,6 +300,7 @@ export default function Home() {
         )}
 
         {activeTab === 'conversations' && <ConversationsPanel />}
+        {activeTab === 'retrieval' && <RetrievalPanel />}
 
         <footer className="mt-16 text-center text-gray-600">
           <p className="mb-2">

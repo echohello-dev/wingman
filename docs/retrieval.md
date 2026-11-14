@@ -69,6 +69,22 @@ authentication. Keep the management API behind trusted access controls. Omitting
 the channel searches all indexed content; a supplied channel is a search filter,
 not an authorisation check. The response contains full chunk text.
 
+The dashboard's **Retrieval** tab calls this endpoint on submission. Enter a
+question and optionally a channel ID to inspect ranked chunk text, source
+metadata and raw distances alongside the effective top-k and cutoff. An empty
+channel searches all indexed content. The tab reports empty results and offers
+a retry after failures. Editing either input clears the previous results, and
+leaving the tab cancels the pending browser request. It does not generate an
+answer or send a Slack message. Cancelling the browser request does not
+guarantee that an embedding request already started by the backend is cancelled.
+
+![Retrieval tab showing one selected VPN chunk and its distance](images/retrieval-preview.png)
+
+The screenshot uses local fixture data with fixed embeddings, a channel scope
+of `CTARGET` and a distance cutoff of 1. It contains no real workspace content.
+The [narrow screen capture](images/retrieval-preview-mobile.png) shows the same
+result at a width of 390 pixels.
+
 ## Saved Slack threads
 
 Slack thread indexing uses a stable chunk ID built from the channel ID and
