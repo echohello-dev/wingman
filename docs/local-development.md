@@ -281,6 +281,27 @@ docker compose up -d --build bot
 cd backend && uv sync
 ```
 
+## Search saved documents
+
+`GET /api/documents` accepts an optional `q` parameter to search document titles
+and full content for a case-insensitive literal substring. Surrounding whitespace
+is ignored; an omitted or blank query returns the usual list. Characters such as
+`%` and `_` are literal text, not search wildcards.
+
+```sh
+curl -sS --get http://localhost:8000/api/documents \
+  --data-urlencode 'q=VPN' \
+  --data-urlencode 'source=api' \
+  --data-urlencode 'limit=10' \
+  --data-urlencode 'offset=0'
+```
+
+Search and source filters combine before counting and pagination. The response
+keeps the existing `items`, `total`, `limit` and `offset` fields and newest-first
+ordering. A search with no matches returns an empty page with `total` set to zero. This searches
+saved PostgreSQL records and does not call Slack, embeddings or the model. The
+dashboard does not expose the search input yet.
+
 ## Next Steps
 
 - [Full Setup Guide](setup.md) - Complete deployment instructions
