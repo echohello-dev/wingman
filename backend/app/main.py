@@ -6,7 +6,7 @@ from typing import Annotated, Any, Dict, List, Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, StringConstraints
+from pydantic import BaseModel, StringConstraints, field_validator
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
@@ -81,9 +81,17 @@ class RetrievalPreviewResponse(BaseModel):
 
 
 class DocumentRequest(BaseModel):
-    title: str
+    title: NonBlankString
     content: str
-    source: str = "api"
+    source: NonBlankString = "api"
+
+    @field_validator("content")
+    @classmethod
+    def content_must_not_be_blank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("Content must not be blank")
+        # Preserve code indentation and other meaningful document formatting.
+        return value
 
 
 class MessageResponse(BaseModel):
