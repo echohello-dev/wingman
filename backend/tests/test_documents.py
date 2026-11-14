@@ -134,6 +134,70 @@ class TestListDocuments:
         assert data == {"items": [], "total": 0, "limit": 50, "offset": 0}
 
 
+class TestSearchDocuments:
+    @pytest.mark.parametrize("query", ["vpn", "VpN", " \tVPN\n "])
+    def test_matches_title_case_insensitively_and_trims_query(self, query):
+        response = client.get("/api/documents", params={"q": query})
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == 1
+        assert [item["title"] for item in data["items"]] == ["VPN guide"]
+
+    def test_matches_content_beyond_the_preview(self):
+        with TestingSession() as db:
+            db.add(_doc("Remote access", "x" * 150 + " reset via IT PORTAL", "docs", 20))
+            db.commit()
+        data = client.get("/api/documents", params={"q": "it portal"}).json()
+        assert data["total"] == 2
+        assert [item["title"] for item in data["items"]] == ["Remote access", "VPN guide"]
+        assert data["items"][0]["content_preview"] == "x" * 120
+
+    def test_filters_before_counting_and_paginating(self):
+        with TestingSession() as db:
+            db.add_all([
+                _doc("VPN handbook", "VPN for new starters", "api", 20),
+                _doc("VPN checklist", "Follow these steps", "api", 20),
+                _doc("VPN troubleshooting", "A separate source", "docs", 30),
+            ])
+            db.commit()
+        pages = [client.get("/api/documents", params={
+            "q": "vpn", "source": "api", "limit": 1, "offset": offset,
+        }).json() for offset in range(4)]
+        assert all(page["total"] == 3 for page in pages)
+        assert all(page["limit"] == 1 for page in pages)
+        assert [page["offset"] for page in pages] == [0, 1, 2, 3]
+        assert [page["items"][0]["title"] for page in pages[:3]] == [
+            "VPN checklist", "VPN handbook", "VPN guide",
+        ]
+        assert pages[3]["items"] == []
+
+    @pytest.mark.parametrize("query", ["%", "_", "/", "100%", "setup_notes", "a/b", "' OR 1=1 --"])
+    @pytest.mark.parametrize("field", ["title", "content"])
+    def test_treats_sql_wildcards_and_escape_characters_literally(self, query, field):
+        values = {"title": "Literal example", "content": "A literal example"}
+        values[field] += f" {query}"
+        with TestingSession() as db:
+            db.add(_doc(values["title"], values["content"], "docs", 20))
+            db.commit()
+        data = client.get("/api/documents", params={"q": query}).json()
+        assert data["total"] == 1
+        assert [item["title"] for item in data["items"]] == [values["title"]]
+
+    @pytest.mark.parametrize("query", ["", " \t\n ", "\u2003\u00a0"])
+    def test_blank_query_preserves_source_filter_and_existing_list(self, query):
+        params = {"source": "api", "limit": 1, "offset": 1}
+        expected = client.get("/api/documents", params=params).json()
+        response = client.get("/api/documents", params={**params, "q": query})
+        assert response.status_code == 200
+        assert response.json() == expected
+
+    @pytest.mark.parametrize("params", [{"q": "missing"}, {"q": "vpn", "source": "docs"}])
+    def test_no_matches_return_an_empty_page(self, params):
+        response = client.get("/api/documents", params=params)
+        assert response.status_code == 200
+        assert response.json() == {"items": [], "total": 0, "limit": 50, "offset": 0}
+
+
 class TestDocumentDetail:
     def test_returns_full_content(self, seed):
         doc_id = seed[0]
