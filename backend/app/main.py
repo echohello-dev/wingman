@@ -278,12 +278,25 @@ async def list_documents(
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
     source: str = None,
+    q: str | None = Query(
+        None,
+        description=(
+            "Case-insensitive literal substring in title or content. "
+            "Surrounding whitespace is ignored."
+        ),
+    ),
     db: Session = Depends(get_db),
 ):
     """List documents in the knowledge base, most recently created first."""
     base = db.query(Document)
     if source:
         base = base.filter(Document.source == source)
+    search = q.strip() if q else ""
+    if search:
+        base = base.filter(or_(
+            Document.title.icontains(search, autoescape=True),
+            Document.content.icontains(search, autoescape=True),
+        ))
 
     total = base.count()
     documents = (
