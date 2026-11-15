@@ -251,8 +251,8 @@ class TestCreateDocument:
         with patch.object(rag_engine, "index_document") as index:
             response = client.post("/api/documents", json=payload)
         assert response.status_code == 200
-        index.assert_called_once_with("VPN guide", content, expected_source)
         document_id = response.json()["id"]
+        index.assert_called_once_with("VPN guide", content, expected_source, document_id=document_id)
         detail = client.get(f"/api/documents/{document_id}").json()
         assert detail["title"] == "VPN guide"
         assert detail["content"] == content

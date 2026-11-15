@@ -6,7 +6,7 @@ from typing import Annotated, Any, Dict, List, Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, StringConstraints, field_validator
+from pydantic import BaseModel, StringConstraints, ValidationError, field_validator
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
@@ -260,17 +260,28 @@ async def add_document(doc: DocumentRequest, db: Session = Depends(get_db)):
         db.add(db_doc)
         db.commit()
         db.refresh(db_doc)
-        
-        # Index in vector store
-        rag_engine.index_document(doc.title, doc.content, doc.source)
-        
-        return {
-            "id": db_doc.id,
-            "message": "Document added successfully"
-        }
+
     except Exception as e:
+        db.rollback()
         logger.error(f"Error adding document: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+    await _index_saved_document(db_doc.id, doc)
+    return {"id": db_doc.id, "message": "Document added successfully"}
+
+
+async def _index_saved_document(document_id: int, doc: DocumentRequest):
+    try:
+        await run_in_threadpool(
+            rag_engine.index_document, doc.title, doc.content, doc.source,
+            document_id=document_id,
+        )
+    except Exception:
+        logger.exception("Indexing saved document %s failed", document_id)
+        raise HTTPException(status_code=503, detail={
+            "message": "Document saved but indexing is unavailable",
+            "document_id": document_id,
+        })
 
 
 @app.get("/api/documents", response_model=DocumentListResponse)
@@ -325,6 +336,22 @@ async def get_document(document_id: int, db: Session = Depends(get_db)):
     if doc is None:
         raise HTTPException(status_code=404, detail="Document not found")
     return doc
+
+
+@app.post("/api/documents/{document_id}/index")
+async def index_saved_document(document_id: int, db: Session = Depends(get_db)):
+    """Retry indexing saved content without creating another document record."""
+    doc = db.query(Document).filter(Document.id == document_id).first()
+    if doc is None:
+        raise HTTPException(status_code=404, detail="Document not found")
+    try:
+        validated = DocumentRequest(title=doc.title, content=doc.content, source=doc.source)
+    except ValidationError:
+        raise HTTPException(
+            status_code=422, detail="Saved document has invalid title, content or source",
+        )
+    await _index_saved_document(doc.id, validated)
+    return {"id": doc.id, "message": "Document indexed successfully"}
 
 
 @app.get("/api/messages", response_model=List[MessageResponse])
