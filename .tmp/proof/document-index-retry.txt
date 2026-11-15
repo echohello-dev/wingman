@@ -1,0 +1,124 @@
+$ env -i HOME="$HOME" PATH="$PATH" UV_PYTHON=3.13 UV_FROZEN=1 MISE_YES=1 SLACK_BOT_TOKEN=xoxb-fixture-only SLACK_SIGNING_SECRET=fixture-only DATABASE_URL=sqlite:///.tmp-tests.db PYTEST_ADDOPTS=-rP mise run test-backend
+tests/test_document_indexing.py::test_create_and_retry_keep_one_owned_chunk_and_preserve_saved_record PASSED [ 94%]
+tests/test_document_indexing.py::test_retry_recovers_saved_document_after_embedding_failure_with_transcript PASSED [ 94%]
+tests/test_document_indexing.py::test_retry_rechunks_and_removes_only_obsolete_owned_chunks PASSED [ 95%]
+tests/test_document_indexing.py::test_retry_reads_latest_saved_content_title_and_source PASSED [ 95%]
+tests/test_document_indexing.py::test_retry_failure_keeps_previous_chunks_and_saved_content[lookup] PASSED [ 96%]
+tests/test_document_indexing.py::test_retry_failure_keeps_previous_chunks_and_saved_content[embed] PASSED [ 96%]
+tests/test_document_indexing.py::test_retry_failure_keeps_previous_chunks_and_saved_content[upsert] PASSED [ 97%]
+tests/test_document_indexing.py::test_cleanup_failure_is_reported_and_retry_finishes_without_duplicates PASSED [ 97%]
+tests/test_document_indexing.py::test_missing_saved_document_does_not_initialise_vector_store PASSED [ 98%]
+tests/test_document_indexing.py::test_invalid_legacy_document_is_rejected_without_changing_chunks[content- \n\t ] PASSED [ 98%]
+tests/test_document_indexing.py::test_invalid_legacy_document_is_rejected_without_changing_chunks[content-None] PASSED [ 99%]
+tests/test_document_indexing.py::test_invalid_legacy_document_is_rejected_without_changing_chunks[title-] PASSED [ 99%]
+tests/test_document_indexing.py::test_invalid_legacy_document_is_rejected_without_changing_chunks[source-None] PASSED [100%]
+====================== 209 passed, 928 warnings in 6.48s =======================
+
+Captured stdout from test_retry_recovers_saved_document_after_embedding_failure_with_transcript
+{
+  "query": "How do I reset VPN?",
+  "document_id": 1,
+  "top_k": 5,
+  "before_retry": [],
+  "after_two_retries": [
+    {
+      "content": "Reset VPN via IT portal.",
+      "metadata": {
+        "chunk": 0,
+        "document_id": 1,
+        "source": "api",
+        "title": "VPN guide"
+      },
+      "distance": 1.0
+    }
+  ],
+  "chunk_count": 1,
+  "note": "Fixed-vector squared L2 distances prove recovery and identity, not production relevance."
+}
+
+$ mise run dev-backend (with a local SQLite URL, fixed Chroma embeddings and a Slack-denying sitecustomize hook)
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Application startup complete.
+INFO:     Application shutdown complete.
+
+$ curl -sS --max-time 10 -i http://127.0.0.1:8000/health
+HTTP/1.1 200 OK
+date: Sun, 15 Nov 2026 02:22:52 GMT
+server: uvicorn
+content-length: 20
+content-type: application/json
+
+{"status":"healthy"}
+
+$ curl -sS --max-time 10 -i http://127.0.0.1:8000/api/retrieval/preview -H 'Content-Type: application/json' -d '{"question": "How do I reset VPN?"}'
+HTTP/1.1 200 OK
+date: Sun, 15 Nov 2026 02:22:52 GMT
+server: uvicorn
+content-length: 93
+content-type: application/json
+
+{"question":"How do I reset VPN?","channel_id":null,"top_k":5,"max_distance":null,"items":[]}
+
+$ curl -sS --max-time 10 -i http://127.0.0.1:8000/api/documents -H 'Content-Type: application/json' -d '{"title": "VPN guide", "content": "Reset VPN via IT portal."}'
+HTTP/1.1 503 Service Unavailable
+date: Sun, 15 Nov 2026 02:22:53 GMT
+server: uvicorn
+content-length: 83
+content-type: application/json
+
+{"detail":{"message":"Document saved but indexing is unavailable","document_id":1}}
+
+$ curl -sS --max-time 10 -i http://127.0.0.1:8000/api/documents/1
+HTTP/1.1 200 OK
+date: Sun, 15 Nov 2026 02:22:53 GMT
+server: uvicorn
+content-length: 164
+content-type: application/json
+
+{"id":1,"title":"VPN guide","content":"Reset VPN via IT portal.","source":"api","created_at":"2026-11-15T02:22:53.268264","updated_at":"2026-11-15T02:22:53.268271"}
+
+$ curl -sS --max-time 10 -i -X POST http://127.0.0.1:8000/api/documents/1/index
+HTTP/1.1 200 OK
+date: Sun, 15 Nov 2026 02:22:53 GMT
+server: uvicorn
+content-length: 50
+content-type: application/json
+
+{"id":1,"message":"Document indexed successfully"}
+
+$ curl -sS --max-time 10 -i -X POST http://127.0.0.1:8000/api/documents/1/index
+HTTP/1.1 200 OK
+date: Sun, 15 Nov 2026 02:22:53 GMT
+server: uvicorn
+content-length: 50
+content-type: application/json
+
+{"id":1,"message":"Document indexed successfully"}
+
+$ curl -sS --max-time 10 -i http://127.0.0.1:8000/api/retrieval/preview -H 'Content-Type: application/json' -d '{"question": "How do I reset VPN?"}'
+HTTP/1.1 200 OK
+date: Sun, 15 Nov 2026 02:22:53 GMT
+server: uvicorn
+content-length: 220
+content-type: application/json
+
+{"question":"How do I reset VPN?","channel_id":null,"top_k":5,"max_distance":null,"items":[{"content":"Reset VPN via IT portal.","metadata":{"chunk":0,"document_id":1,"source":"api","title":"VPN guide"},"distance":1.0}]}
+
+$ curl -sS --max-time 10 -i http://127.0.0.1:8000/api/documents
+HTTP/1.1 200 OK
+date: Sun, 15 Nov 2026 02:22:53 GMT
+server: uvicorn
+content-length: 174
+content-type: application/json
+
+{"items":[{"id":1,"title":"VPN guide","source":"api","created_at":"2026-11-15T02:22:53.268264","content_preview":"Reset VPN via IT portal."}],"total":1,"limit":50,"offset":0}
+
+$ curl -sS --max-time 10 -i -X POST http://127.0.0.1:8000/api/documents/999/index
+HTTP/1.1 404 Not Found
+date: Sun, 15 Nov 2026 02:22:53 GMT
+server: uvicorn
+content-length: 31
+content-type: application/json
+
+{"detail":"Document not found"}
+

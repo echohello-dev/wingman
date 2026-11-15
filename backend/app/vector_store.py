@@ -68,6 +68,28 @@ class VectorStore:
         
         options = {"ids": ids} if ids is not None else {}
         return self.vector_store.add_texts(texts=texts, metadatas=metadatas, **options)
+
+    def replace_document(self, document_id: int, texts: List[str],
+                         metadatas: List[Dict[str, Any]]):
+        """Upsert owned chunks before removing obsolete chunks for a saved document.
+
+        Existing chunks are not deleted before the upsert succeeds. Cleanup
+        failures propagate so the caller can retry the same stable IDs.
+        Unowned legacy chunks and other documents are never removed.
+        """
+        if not texts:
+            raise ValueError("A document must contain at least one chunk")
+        self._ensure_initialized()
+        if self.vector_store is None:
+            raise RuntimeError("Vector store not initialized")
+
+        previous = self.vector_store.get(where={"document_id": document_id}, include=[])
+        ids = [f"document:{document_id}:{i}" for i in range(len(texts))]
+        owned_metadata = [{**metadata, "document_id": document_id} for metadata in metadatas]
+        self.add_documents(texts, owned_metadata, ids=ids)
+        obsolete = sorted(set(previous["ids"]) - set(ids))
+        if obsolete:
+            self.vector_store.delete(ids=obsolete)
     
     def similarity_search(self, query: str, k: int = None, *,
                           channel_id: str = None) -> List[Dict[str, Any]]:

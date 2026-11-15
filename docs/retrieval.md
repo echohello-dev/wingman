@@ -9,7 +9,9 @@ positive, and `CHUNK_OVERLAP` must be non-negative and smaller than `CHUNK_SIZE`
 Invalid settings are rejected at startup, before indexing can begin. Splitting
 stops when a chunk reaches the end of the content; it does not index redundant
 trailing overlap fragments. Existing stored fragments are not removed by this
-change. Rebuild the collection from its original sources to remove them.
+change. Saved document retries described below replace chunks carrying their
+document ID. Unowned historical chunks need a collection rebuild from their
+original sources.
 
 Set `RETRIEVAL_MAX_DISTANCE` to exclude weak matches from the retrieved context.
 Leave it unset to keep all top-k matches, which preserves the default behaviour.
@@ -84,6 +86,44 @@ The screenshot uses local fixture data with fixed embeddings, a channel scope
 of `CTARGET` and a distance cutoff of 1. It contains no real workspace content.
 The [narrow screen capture](images/retrieval-preview-mobile.png) shows the same
 result at a width of 390 pixels.
+
+## Retry saved document indexing
+
+`POST /api/documents/{document_id}/index` indexes the saved title, content and
+source without creating or modifying a database record. Find the ID with
+`GET /api/documents`. A missing record returns HTTP 404; invalid legacy title,
+content or source fields return HTTP 422 before indexing starts.
+
+```sh
+curl -sS -X POST http://localhost:8000/api/documents/1/index
+```
+
+Success returns HTTP 200 with `id` and `message`. Indexing failures return HTTP
+503 with `detail.message` and `detail.document_id`, so the same record can be
+retried after the cause is fixed. `POST /api/documents` uses the same indexing
+path. If saving succeeds but indexing fails, it now returns this HTTP 503 shape
+with the saved ID. Retry the index endpoint instead of posting the document
+again, which would create a separate record.
+
+API-created and retried documents use stable IDs for each chunk and include
+`document_id` in retrieval metadata. Repeated indexing replaces their chunks.
+Changing chunk settings and retrying removes obsolete owned chunks after the
+new chunks are stored successfully. Embedding failures leave existing chunks
+available; a cleanup failure may leave a mix of old and new chunks until a
+successful retry. Database storage and vector indexing are separate operations,
+not an atomic transaction.
+
+Chunks belonging to other document IDs, Slack messages, and legacy chunks
+without a document ID are left alone. Retrying a legacy document can therefore
+leave historical duplicates. Titles and sources are not unique identities, so
+automatic legacy cleanup would risk deleting another document. File indexing
+without a saved document ID retains its existing behaviour.
+
+This endpoint calls the configured embedding provider, but does not fetch from
+Slack or generate an answer. Keep it behind the same trusted access controls as
+the other management endpoints. The offline tests use temporary local Chroma
+and fixed embeddings; the recovery transcript is included in the backend gate
+output when run with `PYTEST_ADDOPTS=-rP`.
 
 ## Saved Slack threads
 

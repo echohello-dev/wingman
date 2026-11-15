@@ -204,7 +204,8 @@ class RAGEngine:
                 ids=list(chunks),
             )
     
-    def index_document(self, title: str, content: str, source: str = "docs"):
+    def index_document(self, title: str, content: str, source: str = "docs", *,
+                       document_id: int | None = None):
         """
         Index a document for retrieval
         
@@ -212,6 +213,7 @@ class RAGEngine:
             title: Document title
             content: Document content
             source: Source of the document
+            document_id: Saved record ID for retry-safe replacement of its chunks
         """
         # Split content into chunks if needed
         chunks = self._split_text(content)
@@ -225,7 +227,10 @@ class RAGEngine:
             for i in range(len(chunks))
         ]
         
-        vector_store.add_documents(chunks, metadatas)
+        if document_id is None:
+            vector_store.add_documents(chunks, metadatas)
+        else:
+            vector_store.replace_document(document_id, chunks, metadatas)
     
     def _split_text(self, text: str) -> List[str]:
         """Split into overlapping character windows, stopping at the final chunk."""
