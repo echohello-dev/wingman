@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { getDocument, listDocuments, type DocumentDetail, type DocumentListResponse } from '@/lib/api'
+import { getDocument, listDocuments, reindexDocument, type DocumentDetail, type DocumentListResponse } from '@/lib/api'
 
 const PAGE_SIZE = 20
 const buttonClass = 'min-h-11 rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-40 disabled:cursor-not-allowed'
@@ -9,6 +9,41 @@ const buttonClass = 'min-h-11 rounded-lg border border-gray-300 px-4 py-2 text-s
 function formatDate(value?: string | null) {
   if (!value || Number.isNaN(new Date(value).getTime())) return ''
   return new Date(value).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+function DocumentIndexAction({ documentId }: { documentId: number }) {
+  const [attempt, setAttempt] = useState(0)
+  const [phase, setPhase] = useState<'idle' | 'pending' | 'success' | 'error'>('idle')
+
+  useEffect(() => {
+    if (!attempt) return
+    let cancelled = false
+    const controller = new AbortController()
+    reindexDocument(documentId, controller.signal)
+      .then(() => { if (!cancelled) setPhase('success') })
+      .catch(() => { if (!cancelled) setPhase('error') })
+    return () => { cancelled = true; controller.abort() }
+  }, [attempt, documentId])
+
+  return (
+    <div className="mt-5 border-t border-blue-100 pt-4">
+      <p className="text-sm text-gray-600 mb-3">Re-index this saved content for retrieval. This uses the configured embedding provider and may incur a cost.</p>
+      <button type="button" className={buttonClass} disabled={phase === 'pending'}
+        onClick={() => {
+          if (phase === 'pending') return
+          setPhase('pending')
+          setAttempt((value) => value + 1)
+        }}>
+        {phase === 'pending' ? 'Re-indexing...' : 'Re-index document'}
+      </button>
+      <p role="status" className="text-sm text-gray-700 mt-3">
+        {phase === 'pending' && 'Indexing saved content...'}
+        {phase === 'success' && 'Document indexed successfully.'}
+      </p>
+      {phase === 'error' && <p role="alert" className="text-sm text-red-700 mt-3">Could not index this document. Your saved content is unchanged. Check that the document is still available and the indexing service is running, then try again.</p>}
+      <p className="text-xs text-gray-600 mt-3">Leaving this view stops waiting for the result. Indexing already started may still finish.</p>
+    </div>
+  )
 }
 
 export default function DocumentsPanel() {
@@ -58,7 +93,7 @@ export default function DocumentsPanel() {
     <section aria-labelledby="documents-title" className="max-w-3xl mx-auto bg-white rounded-xl shadow-lg p-6 sm:p-8">
       <h2 id="documents-title" className="text-2xl font-semibold text-gray-800 mb-2">Knowledge Base Documents</h2>
       <p className="text-gray-600 mb-6">
-        Indexed documents used for retrieval-augmented generation. Select one to read its full content.
+        Saved documents for retrieval-augmented generation. Select one to read or re-index its content.
       </p>
       <form onSubmit={(event) => { event.preventDefault(); load(draft.trim()) }} className="mb-6">
         <label htmlFor="document-search" className="block font-medium text-gray-800 mb-2">Search documents</label>
@@ -126,6 +161,7 @@ export default function DocumentsPanel() {
               <h3 className="text-lg font-semibold text-gray-800 mb-1">{detail.title}</h3>
               <p className="text-sm text-gray-600 mb-3">{detail.source}{formatDate(detail.created_at) && ` - ${formatDate(detail.created_at)}`}</p>
               <p className="text-gray-700 whitespace-pre-wrap">{detail.content}</p>
+              <DocumentIndexAction key={detail.id} documentId={detail.id} />
             </div>
           )}
         </section>

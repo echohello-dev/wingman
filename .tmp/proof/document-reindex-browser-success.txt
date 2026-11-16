@@ -1,0 +1,26 @@
+### Result
+#26 [POST] http://127.0.0.1:18053/api/documents/1/index
+
+  General
+    status:    [200] OK
+    duration:  90ms
+    type:      fetch
+    mimeType:  application/json
+
+  Request headers
+    sec-ch-ua-platform: "macOS"
+    referer: http://127.0.0.1:3053/
+    user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.0.0 Safari/537.36
+    sec-ch-ua: "Not-A.Brand";v="99", "Google Chrome";v="157", "Chromium";v="157"
+    sec-ch-ua-mobile: ?0
+
+  Response headers
+    access-control-allow-origin: *
+    content-length: 50
+    date: Mon, 16 Nov 2026 01:36:46 GMT
+    content-type: application/json
+    server: uvicorn
+    access-control-allow-credentials: true
+
+Run `response-body 26` to read the response body.
+{"id":1,"message":"Document indexed successfully"}

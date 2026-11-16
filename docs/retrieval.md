@@ -89,6 +89,13 @@ result at a width of 390 pixels.
 
 ## Retry saved document indexing
 
+In the dashboard, open **Documents**, select a saved document and choose
+**Re-index document**. Its content stays visible while indexing runs. The action
+shows success or a retryable error and does not create another document. The
+list shows saved records, not a persistent indexing status. Leaving the detail
+view stops waiting for the result; work already started on the backend may still
+finish. The configured embedding provider can charge for this operation.
+
 `POST /api/documents/{document_id}/index` indexes the saved title, content and
 source without creating or modifying a database record. Find the ID with
 `GET /api/documents`. A missing record returns HTTP 404; invalid legacy title,

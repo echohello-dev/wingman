@@ -1,0 +1,55 @@
+Offline fixture capture, local SQLite and Chroma, fixed embeddings.
+Slack authentication mocked; Slack API calls and Socket Mode blocked.
+
+document-reindex-retrieval-before.json
+POST /api/retrieval/preview {"question":"How do I reset VPN?"}
+{"question":"How do I reset VPN?","channel_id":null,"top_k":5,"max_distance":null,"items":[]}
+
+document-reindex-retrieval-after.json
+POST /api/retrieval/preview {"question":"How do I reset VPN?"}
+{"question":"How do I reset VPN?","channel_id":null,"top_k":5,"max_distance":null,"items":[{"content":"Reset VPN via IT portal.","metadata":{"chunk":0,"document_id":1,"source":"offline fixture","title":"VPN recovery guide"},"distance":1.0}]}
+
+$ ['curl', '--max-time', '5', '-sS', '-i', 'http://127.0.0.1:18053/health']
+HTTP/1.1 200 OK
+date: Mon, 16 Nov 2026 02:16:49 GMT
+server: uvicorn
+content-length: 20
+content-type: application/json
+
+{"status":"healthy"}
+
+$ ['curl', '--max-time', '5', '-sS', '-i', 'http://127.0.0.1:18053/api/documents?limit=20&offset=0']
+HTTP/1.1 200 OK
+date: Mon, 16 Nov 2026 02:16:49 GMT
+server: uvicorn
+content-length: 195
+content-type: application/json
+
+{"items":[{"id":1,"title":"VPN recovery guide","source":"offline fixture","created_at":"2026-11-16T01:35:07.372068","content_preview":"Reset VPN via IT portal."}],"total":1,"limit":20,"offset":0}
+
+$ ['curl', '--max-time', '5', '-sS', '-i', 'http://127.0.0.1:18053/api/documents/1']
+HTTP/1.1 200 OK
+date: Mon, 16 Nov 2026 02:16:50 GMT
+server: uvicorn
+content-length: 185
+content-type: application/json
+
+{"id":1,"title":"VPN recovery guide","content":"Reset VPN via IT portal.","source":"offline fixture","created_at":"2026-11-16T01:35:07.372068","updated_at":"2026-11-16T01:35:07.372085"}
+
+$ ['curl', '--max-time', '5', '-sS', '-i', '-X', 'POST', 'http://127.0.0.1:18053/api/documents/1/index']
+HTTP/1.1 200 OK
+date: Mon, 16 Nov 2026 02:16:50 GMT
+server: uvicorn
+content-length: 50
+content-type: application/json
+
+{"id":1,"message":"Document indexed successfully"}
+
+$ ['curl', '--max-time', '5', '-sS', '-i', 'http://127.0.0.1:18053/api/retrieval/preview', '-H', 'Content-Type: application/json', '-d', '{"question":"How do I reset VPN?"}']
+HTTP/1.1 200 OK
+date: Mon, 16 Nov 2026 02:16:50 GMT
+server: uvicorn
+content-length: 241
+content-type: application/json
+
+{"question":"How do I reset VPN?","channel_id":null,"top_k":5,"max_distance":null,"items":[{"content":"Reset VPN via IT portal.","metadata":{"chunk":0,"document_id":1,"source":"offline fixture","title":"VPN recovery guide"},"distance":1.0}]}
