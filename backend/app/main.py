@@ -61,6 +61,23 @@ class QuestionResponse(BaseModel):
 NonBlankString = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
 
+class OperatorRulePreviewRequest(BaseModel):
+    question: NonBlankString
+
+
+class OperatorRuleMatch(BaseModel):
+    rule_id: str
+    match_type: str
+    matched_keyword: str
+    priority: int
+    response: str
+
+
+class OperatorRulePreviewResponse(BaseModel):
+    question: str
+    match: OperatorRuleMatch | None
+
+
 class RetrievalPreviewRequest(BaseModel):
     question: NonBlankString
     channel_id: NonBlankString | None = None
@@ -224,6 +241,26 @@ async def ask_question(request: QuestionRequest):
     except Exception as e:
         logger.error(f"Error generating response: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/rules/preview", response_model=OperatorRulePreviewResponse)
+def preview_operator_rule(request: OperatorRulePreviewRequest):
+    """Inspect the loaded rule winner without retrieval, generation or delivery."""
+    try:
+        matched = rag_engine.match_operator_rule(request.question)
+        return OperatorRulePreviewResponse(
+            question=request.question,
+            match=OperatorRuleMatch(
+                rule_id=matched.rule.id,
+                match_type=matched.rule.match_type,
+                matched_keyword=matched.matched_keyword,
+                priority=matched.rule.priority,
+                response=matched.rule.response,
+            ) if matched is not None else None,
+        )
+    except Exception:
+        logger.exception("Operator rule preview failed")
+        raise HTTPException(status_code=503, detail="Operator rule preview is unavailable")
 
 
 @app.post("/api/retrieval/preview", response_model=RetrievalPreviewResponse)

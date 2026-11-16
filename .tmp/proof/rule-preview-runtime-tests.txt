@@ -1,0 +1,16 @@
+[test-runtime] $ node --test
+✔ real Pi SQLite storage preserves answers, deduplicates retries, and retains conversation history (36.818625ms)
+✔ outbox resumes after restart without regenerating answer; retry admits only one job (4.123667ms)
+✔ a process killed during generation resumes the admitted Pi submission (211.4125ms)
+✔ pinned operator answer is delivered without calling the model (1.618084ms)
+✔ model failure sends a persisted Slack failure notification (0.360125ms)
+✔ runtime starts with openai catalog and protects job routes (645.452209ms)
+✔ runtime starts with mimo catalog and protects job routes (466.165042ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1204.200291
