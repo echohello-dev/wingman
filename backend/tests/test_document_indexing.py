@@ -69,6 +69,7 @@ def document_api(tmp_path, monkeypatch):
     )
     vector._initialized = True
     monkeypatch.setattr(rag_module, "vector_store", vector)
+    monkeypatch.setattr("app.main.vector_store", vector)
     blocked = Mock(side_effect=AssertionError("Document indexing must not contact Slack or generate"))
     monkeypatch.setattr("slack_sdk.WebClient.api_call", blocked)
     monkeypatch.setattr("slack_bolt.adapter.socket_mode.SocketModeHandler.start", blocked)

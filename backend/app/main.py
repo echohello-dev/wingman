@@ -354,6 +354,28 @@ async def index_saved_document(document_id: int, db: Session = Depends(get_db)):
     return {"id": doc.id, "message": "Document indexed successfully"}
 
 
+@app.delete("/api/documents/{document_id}")
+def delete_document(document_id: int, db: Session = Depends(get_db)):
+    """Remove owned vector chunks before deleting the saved record."""
+    try:
+        doc = db.query(Document).filter(Document.id == document_id).first()
+        if doc is None:
+            raise HTTPException(status_code=404, detail="Document not found")
+        vector_store.delete_document(document_id)
+        db.delete(doc)
+        db.commit()
+    except HTTPException:
+        raise
+    except Exception:
+        db.rollback()
+        logger.exception("Deleting saved document %s failed", document_id)
+        raise HTTPException(status_code=503, detail={
+            "message": "Document deletion is unavailable",
+            "document_id": document_id,
+        })
+    return {"id": document_id, "message": "Document deleted successfully"}
+
+
 @app.get("/api/messages", response_model=List[MessageResponse])
 async def list_messages(
     limit: int = 100,

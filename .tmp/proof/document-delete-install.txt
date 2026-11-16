@@ -1,0 +1,182 @@
+[install-runtime] $ bun install --frozen-lockfile --ignore-scripts
+[install-backend] $ uv sync
+[install-frontend] $ bun install
+[install-frontend] bun install v1.3.5 (1e86cebd)
+[install-runtime] bun install v1.3.5 (1e86cebd)
+[install-backend] Using CPython 3.13.13
+[install-backend] Creating virtual environment at: .venv
+[install-runtime]
+[install-runtime] + @earendil-works/chord@1.3.0
+[install-runtime] + @earendil-works/pi-ai@1.3.0
+[install-runtime] + @earendil-works/pi-durable@1.3.0
+[install-runtime]
+[install-runtime] 91 packages installed [1283.00ms]
+[install-runtime] Finished in 1.50s
+[install-frontend]
+[install-frontend] + @tailwindcss/postcss@4.1.18
+[install-frontend] + @testing-library/react@16.3.3
+[install-frontend] + @types/bun@1.4.4
+[install-frontend] + eslint@9.39.2
+[install-frontend] + eslint-config-next@16.1.1
+[install-frontend] + happy-dom@21.0.4
+[install-frontend] + tailwindcss@4.1.18
+[install-frontend] + @types/node@25.0.3
+[install-frontend] + @types/react@19.2.7
+[install-frontend] + @types/react-dom@19.2.3
+[install-frontend] + axios@1.13.2
+[install-frontend] + next@16.1.1
+[install-frontend] + react@19.2.3
+[install-frontend] + react-dom@19.2.3
+[install-frontend] + swr@2.3.8
+[install-frontend] + typescript@5.9.3
+[install-frontend]
+[install-frontend] 382 packages installed [2.27s]
+[install-frontend] Finished in 2.47s
+[install-backend] Resolved 143 packages in 5.27s
+[install-backend] warning: `numpy==2.4.0` is yanked (reason: "Backward compatibility bug")
+[install-backend]    Building wingman @ file:///Users/johnny/.paseo/worktrees/0x03bguv/happy-whale/backend
+[install-backend]       Built wingman @ file:///Users/johnny/.paseo/worktrees/0x03bguv/happy-whale/backend
+[install-backend] Prepared 1 package in 8.56s
+[install-backend] Installed 140 packages in 3.06s
+[install-backend]  + aiohappyeyeballs==2.6.1
+[install-backend]  + aiohttp==3.13.2
+[install-backend]  + aiosignal==1.4.0
+[install-backend]  + alembic==1.17.2
+[install-backend]  + annotated-doc==0.0.4
+[install-backend]  + annotated-types==0.7.0
+[install-backend]  + anyio==4.12.0
+[install-backend]  + asgiref==3.11.0
+[install-backend]  + attrs==25.4.0
+[install-backend]  + backoff==2.2.1
+[install-backend]  + bcrypt==5.0.0
+[install-backend]  + build==1.3.0
+[install-backend]  + cachetools==6.2.4
+[install-backend]  + certifi==2025.11.12
+[install-backend]  + charset-normalizer==3.4.4
+[install-backend]  + chroma-hnswlib==0.7.6
+[install-backend]  + chromadb==0.6.3
+[install-backend]  + click==8.3.1
+[install-backend]  + coloredlogs==15.0.1
+[install-backend]  + dataclasses-json==0.6.7
+[install-backend]  + distro==1.9.0
+[install-backend]  + durationpy==0.10
+[install-backend]  + fastapi==0.128.0
+[install-backend]  + filelock==3.20.1
+[install-backend]  + flatbuffers==25.12.19
+[install-backend]  + frozenlist==1.8.0
+[install-backend]  + fsspec==2025.12.0
+[install-backend]  + google-auth==2.45.0
+[install-backend]  + googleapis-common-protos==1.72.0
+[install-backend]  + grpcio==1.76.0
+[install-backend]  + h11==0.16.0
+[install-backend]  + hf-xet==1.2.0
+[install-backend]  + httpcore==1.0.9
+[install-backend]  + httptools==0.7.1
+[install-backend]  + httpx==0.28.1
+[install-backend]  + httpx-sse==0.4.3
+[install-backend]  + huggingface-hub==0.36.0
+[install-backend]  + humanfriendly==10.0
+[install-backend]  + idna==3.11
+[install-backend]  + importlib-metadata==8.7.1
+[install-backend]  + importlib-resources==6.5.2
+[install-backend]  + iniconfig==2.3.0
+[install-backend]  + jiter==0.12.0
+[install-backend]  + jsonpatch==1.33
+[install-backend]  + jsonpointer==3.0.0
+[install-backend]  + kubernetes==34.1.0
+[install-backend]  + langchain==1.2.0
+[install-backend]  + langchain-classic==1.0.1
+[install-backend]  + langchain-community==0.4.1
+[install-backend]  + langchain-core==1.2.5
+[install-backend]  + langchain-openai==1.1.6
+[install-backend]  + langchain-text-splitters==1.1.0
+[install-backend]  + langgraph==1.0.5
+[install-backend]  + langgraph-checkpoint==3.0.1
+[install-backend]  + langgraph-prebuilt==1.0.5
+[install-backend]  + langgraph-sdk==0.3.1
+[install-backend]  + langsmith==0.5.2
+[install-backend]  + lxml==6.0.2
+[install-backend]  + mako==1.3.10
+[install-backend]  + markdown-it-py==4.0.0
+[install-backend]  + markupsafe==3.0.3
+[install-backend]  + marshmallow==3.26.2
+[install-backend]  + mdurl==0.1.2
+[install-backend]  + mmh3==5.2.0
+[install-backend]  + mpmath==1.3.0
+[install-backend]  + multidict==6.7.0
+[install-backend]  + mypy-extensions==1.1.0
+[install-backend]  + numpy==2.4.0
+[install-backend]  + oauthlib==3.3.1
+[install-backend]  + onnxruntime==1.23.2
+[install-backend]  + openai==2.14.0
+[install-backend]  + opentelemetry-api==1.39.1
+[install-backend]  + opentelemetry-exporter-otlp-proto-common==1.39.1
+[install-backend]  + opentelemetry-exporter-otlp-proto-grpc==1.39.1
+[install-backend]  + opentelemetry-instrumentation==0.60b1
+[install-backend]  + opentelemetry-instrumentation-asgi==0.60b1
+[install-backend]  + opentelemetry-instrumentation-fastapi==0.60b1
+[install-backend]  + opentelemetry-proto==1.39.1
+[install-backend]  + opentelemetry-sdk==1.39.1
+[install-backend]  + opentelemetry-semantic-conventions==0.60b1
+[install-backend]  + opentelemetry-util-http==0.60b1
+[install-backend]  + orjson==3.11.5
+[install-backend]  + ormsgpack==1.12.1
+[install-backend]  + overrides==7.7.0
+[install-backend]  + packaging==25.0
+[install-backend]  + pluggy==1.6.0
+[install-backend]  + posthog==7.4.2
+[install-backend]  + propcache==0.4.1
+[install-backend]  + protobuf==6.33.2
+[install-backend]  + psycopg2-binary==2.9.11
+[install-backend]  + pyasn1==0.6.1
+[install-backend]  + pyasn1-modules==0.4.2
+[install-backend]  + pydantic==2.12.5
+[install-backend]  + pydantic-core==2.41.5
+[install-backend]  + pydantic-settings==2.12.0
+[install-backend]  + pygments==2.19.2
+[install-backend]  + pypdf==6.5.0
+[install-backend]  + pypika==0.48.9
+[install-backend]  + pyproject-hooks==1.2.0
+[install-backend]  + pytest==9.0.2
+[install-backend]  + pytest-asyncio==1.3.0
+[install-backend]  + python-dateutil==2.9.0.post0
+[install-backend]  + python-docx==1.2.0
+[install-backend]  + python-dotenv==1.2.1
+[install-backend]  + pyyaml==6.0.3
+[install-backend]  + regex==2025.11.3
+[install-backend]  + requests==2.32.5
+[install-backend]  + requests-oauthlib==2.0.0
+[install-backend]  + requests-toolbelt==1.0.0
+[install-backend]  + rich==14.2.0
+[install-backend]  + rsa==4.9.1
+[install-backend]  + shellingham==1.5.4
+[install-backend]  + six==1.17.0
+[install-backend]  + slack-bolt==1.27.0
+[install-backend]  + slack-sdk==3.42.0
+[install-backend]  + sniffio==1.3.1
+[install-backend]  + sqlalchemy==2.0.45
+[install-backend]  + starlette==0.50.0
+[install-backend]  + sympy==1.14.0
+[install-backend]  + tenacity==9.1.2
+[install-backend]  + tiktoken==0.12.0
+[install-backend]  + tokenizers==0.22.1
+[install-backend]  + tqdm==4.67.1
+[install-backend]  + typer==0.21.0
+[install-backend]  + typing-extensions==4.15.0
+[install-backend]  + typing-inspect==0.9.0
+[install-backend]  + typing-inspection==0.4.2
+[install-backend]  + urllib3==2.3.0
+[install-backend]  + uuid-utils==0.12.0
+[install-backend]  + uvicorn==0.40.0
+[install-backend]  + uvloop==0.22.1
+[install-backend]  + watchfiles==1.1.1
+[install-backend]  + websocket-client==1.9.0
+[install-backend]  + websockets==15.0.1
+[install-backend]  + wingman==1.1.0 (from file:///Users/johnny/.paseo/worktrees/0x03bguv/happy-whale/backend)
+[install-backend]  + wrapt==1.17.3
+[install-backend]  + xxhash==3.6.0
+[install-backend]  + yarl==1.22.0
+[install-backend]  + zipp==3.23.0
+[install-backend]  + zstandard==0.25.0
+[install-backend] Finished in 19.42s
+Finished in 19.56s

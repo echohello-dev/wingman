@@ -1,0 +1,294 @@
+[test-backend] $ uv run pytest tests/test_file_extraction_units.py tests/test_l…
+============================= test session starts ==============================
+platform darwin -- Python 3.13.13, pytest-9.0.2, pluggy-1.6.0 -- /Users/johnny/.paseo/worktrees/0x03bguv/happy-whale/backend/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/johnny/.paseo/worktrees/0x03bguv/happy-whale/backend
+configfile: pytest.ini (WARNING: ignoring pytest config in pyproject.toml!)
+plugins: langsmith-0.5.2, anyio-4.12.0, asyncio-1.3.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 221 items
+
+tests/test_file_extraction_units.py::test_extract_plain_text PASSED      [  0%]
+tests/test_file_extraction_units.py::test_extract_markdown PASSED        [  0%]
+tests/test_file_extraction_units.py::test_extract_python_file PASSED     [  1%]
+tests/test_file_extraction_units.py::test_extract_json PASSED            [  1%]
+tests/test_file_extraction_units.py::test_extract_csv PASSED             [  2%]
+tests/test_file_extraction_units.py::test_extract_html PASSED            [  2%]
+tests/test_file_extraction_units.py::test_extract_html_removes_scripts PASSED [  3%]
+tests/test_file_extraction_units.py::test_extract_with_encoding_errors PASSED [  3%]
+tests/test_file_extraction_units.py::test_extract_xml PASSED             [  4%]
+tests/test_file_extraction_units.py::test_extract_yaml PASSED            [  4%]
+tests/test_file_extraction_units.py::test_javascript_file_extraction PASSED [  4%]
+tests/test_file_extraction_units.py::test_typescript_file_extraction PASSED [  5%]
+tests/test_file_extraction_units.py::test_shell_script_extraction PASSED [  5%]
+tests/test_file_extraction_units.py::TestConversationIds::test_thread_conversation_id_format PASSED [  6%]
+tests/test_file_extraction_units.py::TestConversationIds::test_dm_conversation_id_format PASSED [  6%]
+tests/test_file_extraction_units.py::TestConversationIds::test_mention_conversation_id_format PASSED [  7%]
+tests/test_logging_config.py::test_json_schema_and_redaction_variants PASSED [  7%]
+tests/test_logging_config.py::test_error_hash_not_stack PASSED           [  8%]
+tests/test_logging_config.py::test_wide_event_one_per_request PASSED     [  8%]
+tests/test_logging.py::test_json_stdout_preserves_controls_and_avoids_duplicate_handlers[wingman-backend] PASSED [  9%]
+tests/test_logging.py::test_json_stdout_preserves_controls_and_avoids_duplicate_handlers[wingman-bot] PASSED [  9%]
+tests/test_logging.py::test_text_format_and_configured_level PASSED      [  9%]
+tests/test_logging.py::test_api_keeps_backend_service_when_importing_bot PASSED [ 10%]
+tests/test_agent_runtime.py::test_transport_retry_keeps_request_id PASSED [ 10%]
+tests/test_agent_runtime.py::test_rag_routes_retrieved_context_and_stable_slack_identity PASSED [ 11%]
+tests/test_agent_runtime.py::test_failed_job_surfaces_error PASSED       [ 11%]
+tests/test_rules.py::TestMatching::test_contains_is_case_insensitive PASSED [ 12%]
+tests/test_rules.py::TestMatching::test_contains_needs_the_keyword PASSED [ 12%]
+tests/test_rules.py::TestMatching::test_any_keyword_can_match PASSED     [ 13%]
+tests/test_rules.py::TestMatching::test_exact_needs_the_whole_question PASSED [ 13%]
+tests/test_rules.py::TestMatching::test_regex_match PASSED               [ 14%]
+tests/test_rules.py::TestMatching::test_blank_question_never_matches PASSED [ 14%]
+tests/test_rules.py::TestMatching::test_no_rules_is_a_no_op PASSED       [ 14%]
+tests/test_rules.py::TestOrderingAndEnabled::test_higher_priority_wins PASSED [ 15%]
+tests/test_rules.py::TestOrderingAndEnabled::test_config_order_breaks_priority_ties PASSED [ 15%]
+tests/test_rules.py::TestOrderingAndEnabled::test_disabled_rule_never_matches PASSED [ 16%]
+tests/test_rules.py::TestConfigLoading::test_parse_valid_rules PASSED    [ 16%]
+tests/test_rules.py::TestConfigLoading::test_parse_skips_invalid_entries PASSED [ 17%]
+tests/test_rules.py::TestConfigLoading::test_parse_skips_bad_regex PASSED [ 17%]
+tests/test_rules.py::TestConfigLoading::test_parse_rejects_non_list PASSED [ 18%]
+tests/test_rules.py::TestConfigLoading::test_load_from_json_text PASSED  [ 18%]
+tests/test_rules.py::TestConfigLoading::test_load_invalid_json_is_empty PASSED [ 19%]
+tests/test_rules.py::TestConfigLoading::test_load_from_file_and_file_wins PASSED [ 19%]
+tests/test_rules.py::TestConfigLoading::test_load_missing_file_is_empty PASSED [ 19%]
+tests/test_rules.py::TestConfigLoading::test_from_settings_reads_both_fields PASSED [ 20%]
+tests/test_rules.py::TestRagShortCircuit::test_matched_question_skips_retrieval_and_generation PASSED [ 20%]
+tests/test_rules.py::TestRagShortCircuit::test_unmatched_question_still_uses_generation PASSED [ 21%]
+tests/test_rules.py::TestSlackShortCircuit::test_matched_slack_question_skips_retrieval_and_carries_pinned_answer PASSED [ 21%]
+tests/test_rules.py::TestSlackShortCircuit::test_unmatched_slack_question_uses_retrieval_without_pinned_answer PASSED [ 22%]
+tests/test_conversations.py::TestListConversations::test_lists_summaries_most_recent_first PASSED [ 22%]
+tests/test_conversations.py::TestListConversations::test_summary_counts_and_preview PASSED [ 23%]
+tests/test_conversations.py::TestListConversations::test_pagination PASSED [ 23%]
+tests/test_conversations.py::TestListConversations::test_channel_filter PASSED [ 23%]
+tests/test_conversations.py::TestListConversations::test_channel_filter_scopes_preview_for_shared_conversation[C1] PASSED [ 24%]
+tests/test_conversations.py::TestListConversations::test_channel_filter_scopes_preview_for_shared_conversation[C2] PASSED [ 24%]
+tests/test_conversations.py::TestListConversations::test_unfiltered_preview_includes_latest_turn_across_channels PASSED [ 25%]
+tests/test_conversations.py::TestListConversations::test_scoped_preview_breaks_timestamp_ties_by_latest_id PASSED [ 25%]
+tests/test_conversations.py::TestListConversations::test_invalid_pagination_rejected PASSED [ 26%]
+tests/test_conversations.py::TestListConversations::test_empty_database PASSED [ 26%]
+tests/test_conversations.py::TestConversationDetail::test_returns_turns_in_chronological_order PASSED [ 27%]
+tests/test_conversations.py::TestConversationDetail::test_detail_pagination PASSED [ 27%]
+tests/test_conversations.py::TestConversationDetail::test_missing_conversation_is_404 PASSED [ 28%]
+tests/test_conversations.py::TestConversationDetail::test_detail_invalid_pagination_rejected PASSED [ 28%]
+tests/test_documents.py::TestListDocuments::test_lists_documents_most_recent_first PASSED [ 28%]
+tests/test_documents.py::TestListDocuments::test_preview_and_fields PASSED [ 29%]
+tests/test_documents.py::TestListDocuments::test_pagination PASSED       [ 29%]
+tests/test_documents.py::TestListDocuments::test_source_filter PASSED    [ 30%]
+tests/test_documents.py::TestListDocuments::test_invalid_pagination_rejected PASSED [ 30%]
+tests/test_documents.py::TestListDocuments::test_empty_database PASSED   [ 31%]
+tests/test_documents.py::TestSearchDocuments::test_matches_title_case_insensitively_and_trims_query[vpn] PASSED [ 31%]
+tests/test_documents.py::TestSearchDocuments::test_matches_title_case_insensitively_and_trims_query[VpN] PASSED [ 32%]
+tests/test_documents.py::TestSearchDocuments::test_matches_title_case_insensitively_and_trims_query[ \tVPN\n ] PASSED [ 32%]
+tests/test_documents.py::TestSearchDocuments::test_matches_content_beyond_the_preview PASSED [ 33%]
+tests/test_documents.py::TestSearchDocuments::test_filters_before_counting_and_paginating PASSED [ 33%]
+tests/test_documents.py::TestSearchDocuments::test_treats_sql_wildcards_and_escape_characters_literally[title-%] PASSED [ 33%]
+tests/test_documents.py::TestSearchDocuments::test_treats_sql_wildcards_and_escape_characters_literally[title-_] PASSED [ 34%]
+tests/test_documents.py::TestSearchDocuments::test_treats_sql_wildcards_and_escape_characters_literally[title-/] PASSED [ 34%]
+tests/test_documents.py::TestSearchDocuments::test_treats_sql_wildcards_and_escape_characters_literally[title-100%] PASSED [ 35%]
+tests/test_documents.py::TestSearchDocuments::test_treats_sql_wildcards_and_escape_characters_literally[title-setup_notes] PASSED [ 35%]
+tests/test_documents.py::TestSearchDocuments::test_treats_sql_wildcards_and_escape_characters_literally[title-a/b] PASSED [ 36%]
+tests/test_documents.py::TestSearchDocuments::test_treats_sql_wildcards_and_escape_characters_literally[title-' OR 1=1 --] PASSED [ 36%]
+tests/test_documents.py::TestSearchDocuments::test_treats_sql_wildcards_and_escape_characters_literally[content-%] PASSED [ 37%]
+tests/test_documents.py::TestSearchDocuments::test_treats_sql_wildcards_and_escape_characters_literally[content-_] PASSED [ 37%]
+tests/test_documents.py::TestSearchDocuments::test_treats_sql_wildcards_and_escape_characters_literally[content-/] PASSED [ 38%]
+tests/test_documents.py::TestSearchDocuments::test_treats_sql_wildcards_and_escape_characters_literally[content-100%] PASSED [ 38%]
+tests/test_documents.py::TestSearchDocuments::test_treats_sql_wildcards_and_escape_characters_literally[content-setup_notes] PASSED [ 38%]
+tests/test_documents.py::TestSearchDocuments::test_treats_sql_wildcards_and_escape_characters_literally[content-a/b] PASSED [ 39%]
+tests/test_documents.py::TestSearchDocuments::test_treats_sql_wildcards_and_escape_characters_literally[content-' OR 1=1 --] PASSED [ 39%]
+tests/test_documents.py::TestSearchDocuments::test_blank_query_preserves_source_filter_and_existing_list[] PASSED [ 40%]
+tests/test_documents.py::TestSearchDocuments::test_blank_query_preserves_source_filter_and_existing_list[ \t\n ] PASSED [ 40%]
+tests/test_documents.py::TestSearchDocuments::test_blank_query_preserves_source_filter_and_existing_list[\u2003\xa0] PASSED [ 41%]
+tests/test_documents.py::TestSearchDocuments::test_no_matches_return_an_empty_page[params0] PASSED [ 41%]
+tests/test_documents.py::TestSearchDocuments::test_no_matches_return_an_empty_page[params1] PASSED [ 42%]
+tests/test_documents.py::TestDocumentDetail::test_returns_full_content PASSED [ 42%]
+tests/test_documents.py::TestDocumentDetail::test_missing_document_is_404 PASSED [ 42%]
+tests/test_documents.py::TestCreateDocument::test_rejects_invalid_fields_without_writes_or_indexing[-title] PASSED [ 43%]
+tests/test_documents.py::TestCreateDocument::test_rejects_invalid_fields_without_writes_or_indexing[-content] PASSED [ 43%]
+tests/test_documents.py::TestCreateDocument::test_rejects_invalid_fields_without_writes_or_indexing[-source] PASSED [ 44%]
+tests/test_documents.py::TestCreateDocument::test_rejects_invalid_fields_without_writes_or_indexing[ \n\t -title] PASSED [ 44%]
+tests/test_documents.py::TestCreateDocument::test_rejects_invalid_fields_without_writes_or_indexing[ \n\t -content] PASSED [ 45%]
+tests/test_documents.py::TestCreateDocument::test_rejects_invalid_fields_without_writes_or_indexing[ \n\t -source] PASSED [ 45%]
+tests/test_documents.py::TestCreateDocument::test_rejects_invalid_fields_without_writes_or_indexing[\u2003\xa0-title] PASSED [ 46%]
+tests/test_documents.py::TestCreateDocument::test_rejects_invalid_fields_without_writes_or_indexing[\u2003\xa0-content] PASSED [ 46%]
+tests/test_documents.py::TestCreateDocument::test_rejects_invalid_fields_without_writes_or_indexing[\u2003\xa0-source] PASSED [ 47%]
+tests/test_documents.py::TestCreateDocument::test_rejects_invalid_fields_without_writes_or_indexing[None-title] PASSED [ 47%]
+tests/test_documents.py::TestCreateDocument::test_rejects_invalid_fields_without_writes_or_indexing[None-content] PASSED [ 47%]
+tests/test_documents.py::TestCreateDocument::test_rejects_invalid_fields_without_writes_or_indexing[None-source] PASSED [ 48%]
+tests/test_documents.py::TestCreateDocument::test_rejects_invalid_fields_without_writes_or_indexing[123-title] PASSED [ 48%]
+tests/test_documents.py::TestCreateDocument::test_rejects_invalid_fields_without_writes_or_indexing[123-content] PASSED [ 49%]
+tests/test_documents.py::TestCreateDocument::test_rejects_invalid_fields_without_writes_or_indexing[123-source] PASSED [ 49%]
+tests/test_documents.py::TestCreateDocument::test_rejects_missing_required_fields[title] PASSED [ 50%]
+tests/test_documents.py::TestCreateDocument::test_rejects_missing_required_fields[content] PASSED [ 50%]
+tests/test_documents.py::TestCreateDocument::test_creates_readable_document_and_indexes_preserved_content[None] PASSED [ 51%]
+tests/test_documents.py::TestCreateDocument::test_creates_readable_document_and_indexes_preserved_content[ \tdocs\n ] PASSED [ 51%]
+tests/test_retrieval.py::test_invalid_chunk_settings_are_rejected[config0] PASSED [ 52%]
+tests/test_retrieval.py::test_invalid_chunk_settings_are_rejected[config1] PASSED [ 52%]
+tests/test_retrieval.py::test_invalid_chunk_settings_are_rejected[config2] PASSED [ 52%]
+tests/test_retrieval.py::test_invalid_chunk_settings_are_rejected[config3] PASSED [ 53%]
+tests/test_retrieval.py::test_invalid_chunk_settings_are_rejected[config4] PASSED [ 53%]
+tests/test_retrieval.py::test_valid_chunk_settings_are_accepted[1000-200] PASSED [ 54%]
+tests/test_retrieval.py::test_valid_chunk_settings_are_accepted[1-0] PASSED [ 54%]
+tests/test_retrieval.py::test_valid_chunk_settings_are_accepted[10-0] PASSED [ 55%]
+tests/test_retrieval.py::test_valid_chunk_settings_are_accepted[10-9] PASSED [ 55%]
+tests/test_retrieval.py::test_document_chunks_stop_after_covering_content[-5-2-expected0] PASSED [ 56%]
+tests/test_retrieval.py::test_document_chunks_stop_after_covering_content[a-5-2-expected1] PASSED [ 56%]
+tests/test_retrieval.py::test_document_chunks_stop_after_covering_content[abcd-5-2-expected2] PASSED [ 57%]
+tests/test_retrieval.py::test_document_chunks_stop_after_covering_content[abcde-5-2-expected3] PASSED [ 57%]
+tests/test_retrieval.py::test_document_chunks_stop_after_covering_content[abcdef-5-2-expected4] PASSED [ 57%]
+tests/test_retrieval.py::test_document_chunks_stop_after_covering_content[abcdefgh-5-2-expected5] PASSED [ 58%]
+tests/test_retrieval.py::test_document_chunks_stop_after_covering_content[abcdefghi-5-2-expected6] PASSED [ 58%]
+tests/test_retrieval.py::test_document_chunks_stop_after_covering_content[abcdefghij-5-0-expected7] PASSED [ 59%]
+tests/test_retrieval.py::test_document_chunks_stop_after_covering_content[abcdef-5-4-expected8] PASSED [ 59%]
+tests/test_retrieval.py::test_document_chunks_stop_after_covering_content[abc-1-0-expected9] PASSED [ 60%]
+tests/test_retrieval.py::test_document_indexing_avoids_redundant_tail_chunks PASSED [ 60%]
+tests/test_retrieval.py::test_repeated_thread_indexing_preserves_distinct_top_k PASSED [ 61%]
+tests/test_retrieval.py::test_thread_reindex_updates_content_and_embedding PASSED [ 61%]
+tests/test_retrieval.py::test_thread_chunk_ids_are_scoped_by_channel PASSED [ 61%]
+tests/test_retrieval.py::test_thread_indexing_omits_absent_optional_metadata PASSED [ 62%]
+tests/test_retrieval.py::test_thread_indexing_uses_last_duplicate_in_batch PASSED [ 62%]
+tests/test_retrieval.py::test_thread_indexing_skips_unusable_messages[messages0] PASSED [ 63%]
+tests/test_retrieval.py::test_thread_indexing_skips_unusable_messages[messages1] PASSED [ 63%]
+tests/test_retrieval.py::test_thread_indexing_skips_unusable_messages[messages2] PASSED [ 64%]
+tests/test_retrieval.py::test_thread_indexing_skips_unusable_messages[messages3] PASSED [ 64%]
+tests/test_retrieval.py::test_thread_indexing_skips_unusable_messages[messages4] PASSED [ 65%]
+tests/test_retrieval.py::test_thread_indexing_skips_unusable_messages[messages5] PASSED [ 65%]
+tests/test_retrieval.py::test_thread_indexing_skips_unusable_messages[messages6] PASSED [ 66%]
+tests/test_retrieval.py::test_search_empty_collection_returns_no_matches[None-None] PASSED [ 66%]
+tests/test_retrieval.py::test_search_empty_collection_returns_no_matches[None-CTARGET] PASSED [ 66%]
+tests/test_retrieval.py::test_search_empty_collection_returns_no_matches[1.0-None] PASSED [ 67%]
+tests/test_retrieval.py::test_search_empty_collection_returns_no_matches[1.0-CTARGET] PASSED [ 67%]
+tests/test_retrieval.py::test_first_document_can_be_indexed_and_retrieved PASSED [ 68%]
+tests/test_retrieval.py::test_missing_adapter_still_raises[add] PASSED   [ 68%]
+tests/test_retrieval.py::test_missing_adapter_still_raises[search] PASSED [ 69%]
+tests/test_retrieval.py::test_channel_filter_runs_before_top_k PASSED    [ 69%]
+tests/test_retrieval.py::test_unscoped_search_preserves_global_ranking_and_explicit_k PASSED [ 70%]
+tests/test_retrieval.py::test_distance_cutoff_is_inclusive_and_preserves_channel_scope PASSED [ 70%]
+tests/test_retrieval.py::test_zero_distance_cutoff_keeps_only_exact_vector_matches PASSED [ 71%]
+tests/test_retrieval.py::test_invalid_distance_config_is_rejected[-1] PASSED [ 71%]
+tests/test_retrieval.py::test_invalid_distance_config_is_rejected[nan] PASSED [ 71%]
+tests/test_retrieval.py::test_invalid_distance_config_is_rejected[inf] PASSED [ 72%]
+tests/test_retrieval.py::test_invalid_distance_config_is_rejected[-inf] PASSED [ 72%]
+tests/test_retrieval.py::test_invalid_distance_config_is_rejected[invalid] PASSED [ 73%]
+tests/test_retrieval.py::test_distance_config_accepts_unset_or_nonnegative_finite_values[None] PASSED [ 73%]
+tests/test_retrieval.py::test_distance_config_accepts_unset_or_nonnegative_finite_values[0] PASSED [ 74%]
+tests/test_retrieval.py::test_distance_config_accepts_unset_or_nonnegative_finite_values[1.5] PASSED [ 74%]
+tests/test_retrieval.py::test_empty_channel_does_not_fall_back_to_global_results PASSED [ 75%]
+tests/test_retrieval.py::test_rag_payload_uses_scoped_matches[None-2-api] PASSED [ 75%]
+tests/test_retrieval.py::test_rag_payload_uses_scoped_matches[None-2-slack] PASSED [ 76%]
+tests/test_retrieval.py::test_rag_payload_uses_scoped_matches[1.0-1-api] PASSED [ 76%]
+tests/test_retrieval.py::test_rag_payload_uses_scoped_matches[1.0-1-slack] PASSED [ 76%]
+tests/test_retrieval.py::test_rag_payload_uses_scoped_matches[0.0-0-api] PASSED [ 77%]
+tests/test_retrieval.py::test_rag_payload_uses_scoped_matches[0.0-0-slack] PASSED [ 77%]
+tests/test_thread_indexing.py::test_saved_thread_includes_root_and_replies_in_timestamp_order PASSED [ 78%]
+tests/test_thread_indexing.py::test_saved_root_only_thread_is_indexed_once[None] PASSED [ 78%]
+tests/test_thread_indexing.py::test_saved_root_only_thread_is_indexed_once[1700000000.000001] PASSED [ 79%]
+tests/test_thread_indexing.py::test_saved_replies_can_be_indexed_without_a_saved_root PASSED [ 79%]
+tests/test_thread_indexing.py::test_missing_saved_thread_returns_404_without_indexing[CTARGET-1700000098.000001] PASSED [ 80%]
+tests/test_thread_indexing.py::test_missing_saved_thread_returns_404_without_indexing[CEMPTY-1700000000.000001] PASSED [ 80%]
+tests/test_thread_indexing.py::test_saved_thread_channel_filter_also_applies_to_root_lookup PASSED [ 80%]
+tests/test_thread_indexing.py::test_saved_thread_indexing_failure_remains_500 PASSED [ 81%]
+tests/test_thread_indexing.py::test_saved_thread_retrieval_includes_original_question PASSED [ 81%]
+tests/test_retrieval_preview.py::test_preview_returns_ranked_chunks_metadata_distances_and_settings PASSED [ 82%]
+tests/test_retrieval_preview.py::test_preview_applies_channel_scope_before_top_k PASSED [ 82%]
+tests/test_retrieval_preview.py::test_preview_exposes_inclusive_distance_cutoff_with_transcript PASSED [ 83%]
+tests/test_retrieval_preview.py::test_preview_returns_success_for_empty_results[collection] PASSED [ 83%]
+tests/test_retrieval_preview.py::test_preview_returns_success_for_empty_results[channel] PASSED [ 84%]
+tests/test_retrieval_preview.py::test_preview_returns_success_for_empty_results[cutoff] PASSED [ 84%]
+tests/test_retrieval_preview.py::test_preview_rejects_invalid_input_before_search[payload0] PASSED [ 85%]
+tests/test_retrieval_preview.py::test_preview_rejects_invalid_input_before_search[payload1] PASSED [ 85%]
+tests/test_retrieval_preview.py::test_preview_rejects_invalid_input_before_search[payload2] PASSED [ 85%]
+tests/test_retrieval_preview.py::test_preview_rejects_invalid_input_before_search[payload3] PASSED [ 86%]
+tests/test_retrieval_preview.py::test_preview_rejects_invalid_input_before_search[payload4] PASSED [ 86%]
+tests/test_retrieval_preview.py::test_preview_rejects_invalid_input_before_search[payload5] PASSED [ 87%]
+tests/test_retrieval_preview.py::test_preview_rejects_invalid_input_before_search[payload6] PASSED [ 87%]
+tests/test_retrieval_preview.py::test_preview_trims_question_and_channel PASSED [ 88%]
+tests/test_retrieval_preview.py::test_preview_reports_unavailable_retrieval_without_exposing_error PASSED [ 88%]
+tests/test_document_indexing.py::test_create_and_retry_keep_one_owned_chunk_and_preserve_saved_record PASSED [ 89%]
+tests/test_document_indexing.py::test_retry_recovers_saved_document_after_embedding_failure_with_transcript PASSED [ 89%]
+tests/test_document_indexing.py::test_retry_rechunks_and_removes_only_obsolete_owned_chunks PASSED [ 90%]
+tests/test_document_indexing.py::test_retry_reads_latest_saved_content_title_and_source PASSED [ 90%]
+tests/test_document_indexing.py::test_retry_failure_keeps_previous_chunks_and_saved_content[lookup] PASSED [ 90%]
+tests/test_document_indexing.py::test_retry_failure_keeps_previous_chunks_and_saved_content[embed] PASSED [ 91%]
+tests/test_document_indexing.py::test_retry_failure_keeps_previous_chunks_and_saved_content[upsert] PASSED [ 91%]
+tests/test_document_indexing.py::test_cleanup_failure_is_reported_and_retry_finishes_without_duplicates PASSED [ 92%]
+tests/test_document_indexing.py::test_missing_saved_document_does_not_initialise_vector_store PASSED [ 92%]
+tests/test_document_indexing.py::test_invalid_legacy_document_is_rejected_without_changing_chunks[content- \n\t ] PASSED [ 93%]
+tests/test_document_indexing.py::test_invalid_legacy_document_is_rejected_without_changing_chunks[content-None] PASSED [ 93%]
+tests/test_document_indexing.py::test_invalid_legacy_document_is_rejected_without_changing_chunks[title-] PASSED [ 94%]
+tests/test_document_indexing.py::test_invalid_legacy_document_is_rejected_without_changing_chunks[source-None] PASSED [ 94%]
+tests/test_document_deletion.py::test_delete_removes_only_owned_chunks_with_retrieval_transcript PASSED [ 95%]
+tests/test_document_deletion.py::test_missing_or_invalid_delete_does_not_initialise_vector_store[999-404] PASSED [ 95%]
+tests/test_document_deletion.py::test_missing_or_invalid_delete_does_not_initialise_vector_store[-1-404] PASSED [ 95%]
+tests/test_document_deletion.py::test_missing_or_invalid_delete_does_not_initialise_vector_store[invalid-422] PASSED [ 96%]
+tests/test_document_deletion.py::test_missing_or_invalid_delete_does_not_initialise_vector_store[1.5-422] PASSED [ 96%]
+tests/test_document_deletion.py::test_delete_unindexed_legacy_record_needs_no_valid_content_or_embeddings PASSED [ 97%]
+tests/test_document_deletion.py::test_vector_delete_failure_retains_saved_record_and_allows_retry[initialise] PASSED [ 97%]
+tests/test_document_deletion.py::test_vector_delete_failure_retains_saved_record_and_allows_retry[delete] PASSED [ 98%]
+tests/test_document_deletion.py::test_vector_delete_failure_retains_saved_record_and_allows_retry[lost-acknowledgement] PASSED [ 98%]
+tests/test_document_deletion.py::test_database_delete_failure_rolls_back_saved_record_and_can_retry[delete] PASSED [ 99%]
+tests/test_document_deletion.py::test_database_delete_failure_rolls_back_saved_record_and_can_retry[commit] PASSED [ 99%]
+tests/test_document_deletion.py::test_delete_still_requires_an_initialised_adapter PASSED [100%]
+
+=============================== warnings summary ===============================
+app/main.py:97
+  /Users/johnny/.paseo/worktrees/0x03bguv/happy-whale/backend/app/main.py:97: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class MessageResponse(BaseModel):
+
+app/main.py:124
+  /Users/johnny/.paseo/worktrees/0x03bguv/happy-whale/backend/app/main.py:124: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class ConversationTurn(BaseModel):
+
+app/main.py:161
+  /Users/johnny/.paseo/worktrees/0x03bguv/happy-whale/backend/app/main.py:161: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class DocumentDetail(BaseModel):
+
+app/main.py:174
+  /Users/johnny/.paseo/worktrees/0x03bguv/happy-whale/backend/app/main.py:174: DeprecationWarning:
+          on_event is deprecated, use lifespan event handlers instead.
+
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+
+    @app.on_event("startup")
+
+.venv/lib/python3.13/site-packages/fastapi/applications.py:4576
+.venv/lib/python3.13/site-packages/fastapi/applications.py:4576
+  /Users/johnny/.paseo/worktrees/0x03bguv/happy-whale/backend/.venv/lib/python3.13/site-packages/fastapi/applications.py:4576: DeprecationWarning:
+          on_event is deprecated, use lifespan event handlers instead.
+
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+
+    return self.router.on_event(event_type)
+
+app/main.py:187
+  /Users/johnny/.paseo/worktrees/0x03bguv/happy-whale/backend/app/main.py:187: DeprecationWarning:
+          on_event is deprecated, use lifespan event handlers instead.
+
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+
+    @app.on_event("shutdown")
+
+tests/test_documents.py: 4 warnings
+tests/test_thread_indexing.py: 92 warnings
+tests/test_document_indexing.py: 31 warnings
+tests/test_document_deletion.py: 16 warnings
+  /Users/johnny/.paseo/worktrees/0x03bguv/happy-whale/backend/.venv/lib/python3.13/site-packages/sqlalchemy/sql/schema.py:3624: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    return util.wrap_callable(lambda ctx: fn(), fn)  # type: ignore
+
+tests/test_retrieval.py::test_document_chunks_stop_after_covering_content[-5-2-expected0]
+  /Users/johnny/.paseo/worktrees/0x03bguv/happy-whale/backend/tests/test_retrieval.py:122: LangChainDeprecationWarning: The class `Chroma` was deprecated in LangChain 0.2.9 and will be removed in 1.0. An updated version of the class exists in the `langchain-chroma package and should be used instead. To use it run `pip install -U `langchain-chroma` and import as `from `langchain_chroma import Chroma``.
+    store.vector_store = Chroma(
+
+tests/test_retrieval.py: 384 warnings
+tests/test_thread_indexing.py: 27 warnings
+tests/test_retrieval_preview.py: 216 warnings
+tests/test_document_indexing.py: 166 warnings
+tests/test_document_deletion.py: 89 warnings
+  /Users/johnny/.paseo/worktrees/0x03bguv/happy-whale/backend/.venv/lib/python3.13/site-packages/chromadb/types.py:144: PydanticDeprecatedSince211: Accessing the 'model_fields' attribute on the instance is deprecated. Instead, you should access this attribute from the model class. Deprecated in Pydantic V2.11 to be removed in V3.0.
+    return self.model_fields  # pydantic 2.x
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+===================== 221 passed, 1033 warnings in 39.29s ======================
