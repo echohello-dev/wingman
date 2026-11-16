@@ -1,0 +1,22 @@
+[test-runtime] $ node --test
+✔ real Pi SQLite storage preserves answers, deduplicates retries, and retains conversation history (139.641791ms)
+✔ outbox resumes after restart without regenerating answer; retry admits only one job (7.461334ms)
+Warning: Detected unsettled top-level await at file:///Users/johnny/.paseo/worktrees/0x03bguv/spiffy-catfish/runtime/fixtures/interrupted.mjs:12
+await answerJob(JSON.parse(process.argv[3]), {
+^
+
+
+
+✔ a process killed during generation resumes the admitted Pi submission (607.205292ms)
+✔ pinned operator answer is delivered without calling the model (2.92625ms)
+✔ model failure sends a persisted Slack failure notification (0.764ms)
+✔ runtime starts with openai catalog and protects job routes (2035.927208ms)
+✔ runtime starts with mimo catalog and protects job routes (878.3355ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3118.980458

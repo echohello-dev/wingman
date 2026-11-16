@@ -180,6 +180,15 @@ export async function getDocument(id: number, signal?: AbortSignal): Promise<Doc
   return response.json()
 }
 
+export async function reindexDocument(id: number, signal?: AbortSignal): Promise<{ id: number; message: string }> {
+  const response = await fetch(`${API_BASE_URL}/api/documents/${id}/index`, {
+    method: 'POST',
+    signal,
+  })
+  if (!response.ok) throw new Error(`API error: ${response.status}`)
+  return response.json()
+}
+
 export async function addDocument(doc: DocumentRequest): Promise<{ id: number; message: string }> {
   const response = await fetch(`${API_BASE_URL}/api/documents`, {
     method: 'POST',
