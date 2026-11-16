@@ -1,0 +1,25 @@
+### Result
+#25 [DELETE] http://127.0.0.1:18057/api/documents/1
+
+  General
+    status:    [503] Service Unavailable
+    duration:  11ms
+    type:      fetch
+    mimeType:  application/json
+
+  Request headers
+    sec-ch-ua-platform: "macOS"
+    referer: http://127.0.0.1:13057/
+    user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/157.0.0.0 Safari/537.36
+    sec-ch-ua: "Not-A.Brand";v="99", "Google Chrome";v="157", "Chromium";v="157"
+    sec-ch-ua-mobile: ?0
+
+  Response headers
+    access-control-allow-origin: *
+    content-length: 73
+    date: Mon, 16 Nov 2026 10:22:57 GMT
+    content-type: application/json
+    server: uvicorn
+    access-control-allow-credentials: true
+
+Run `response-body 25` to read the response body.
