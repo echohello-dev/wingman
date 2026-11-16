@@ -1,0 +1,168 @@
+Local SQLite and Chroma, fixed embeddings, Slack authentication mocked and API calls blocked.
+No real tokens, remote databases, model calls or paid embeddings. Distances are fixture squared L2 values.
+$ curl -sS -X GET http://127.0.0.1:18055/health -w '
+%{http_code}'
+HTTP 200
+{
+  "status": "healthy"
+}
+
+$ curl -sS -X POST http://127.0.0.1:18055/api/documents -H 'Content-Type: application/json' -d '{"title": "VPN guide", "content": "Reset VPN via IT portal.", "source": "api"}' -w '
+%{http_code}'
+HTTP 200
+{
+  "id": 1,
+  "message": "Document added successfully"
+}
+
+$ curl -sS -X POST http://127.0.0.1:18055/api/documents -H 'Content-Type: application/json' -d '{"title": "VPN guide", "content": "Reset VPN via IT portal.", "source": "api"}' -w '
+%{http_code}'
+HTTP 200
+{
+  "id": 2,
+  "message": "Document added successfully"
+}
+
+$ curl -sS -X POST http://127.0.0.1:18055/api/retrieval/preview -H 'Content-Type: application/json' -d '{"question": "How do I reset VPN?"}' -w '
+%{http_code}'
+HTTP 200
+{
+  "question": "How do I reset VPN?",
+  "channel_id": null,
+  "top_k": 5,
+  "max_distance": null,
+  "items": [
+    {
+      "content": "Reset VPN via IT portal.",
+      "metadata": {
+        "chunk": 0,
+        "document_id": 2,
+        "source": "api",
+        "title": "VPN guide"
+      },
+      "distance": 1.0
+    },
+    {
+      "content": "Reset VPN via IT portal.",
+      "metadata": {
+        "chunk": 0,
+        "document_id": 1,
+        "source": "api",
+        "title": "VPN guide"
+      },
+      "distance": 1.0
+    }
+  ]
+}
+
+Inject fixture Chroma deletion outage.
+$ curl -sS -X DELETE http://127.0.0.1:18055/api/documents/1 -w '
+%{http_code}'
+HTTP 503
+{
+  "detail": {
+    "message": "Document deletion is unavailable",
+    "document_id": 1
+  }
+}
+
+$ curl -sS -X GET http://127.0.0.1:18055/api/documents/1 -w '
+%{http_code}'
+HTTP 200
+{
+  "id": 1,
+  "title": "VPN guide",
+  "content": "Reset VPN via IT portal.",
+  "source": "api",
+  "created_at": "2026-11-16T07:41:58.529092",
+  "updated_at": "2026-11-16T07:41:58.529098"
+}
+
+Remove fixture outage and retry the same saved ID.
+$ curl -sS -X DELETE http://127.0.0.1:18055/api/documents/1 -w '
+%{http_code}'
+HTTP 200
+{
+  "id": 1,
+  "message": "Document deleted successfully"
+}
+
+$ curl -sS -X GET http://127.0.0.1:18055/api/documents/1 -w '
+%{http_code}'
+HTTP 404
+{
+  "detail": "Document not found"
+}
+
+$ curl -sS -X POST http://127.0.0.1:18055/api/documents/1/index -w '
+%{http_code}'
+HTTP 404
+{
+  "detail": "Document not found"
+}
+
+$ curl -sS -X DELETE http://127.0.0.1:18055/api/documents/1 -w '
+%{http_code}'
+HTTP 404
+{
+  "detail": "Document not found"
+}
+
+$ curl -sS -X GET http://127.0.0.1:18055/api/documents -w '
+%{http_code}'
+HTTP 200
+{
+  "items": [
+    {
+      "id": 2,
+      "title": "VPN guide",
+      "source": "api",
+      "created_at": "2026-11-16T07:41:58.577149",
+      "content_preview": "Reset VPN via IT portal."
+    }
+  ],
+  "total": 1,
+  "limit": 50,
+  "offset": 0
+}
+
+$ curl -sS -X POST http://127.0.0.1:18055/api/retrieval/preview -H 'Content-Type: application/json' -d '{"question": "How do I reset VPN?"}' -w '
+%{http_code}'
+HTTP 200
+{
+  "question": "How do I reset VPN?",
+  "channel_id": null,
+  "top_k": 5,
+  "max_distance": null,
+  "items": [
+    {
+      "content": "Reset VPN via IT portal.",
+      "metadata": {
+        "chunk": 0,
+        "document_id": 2,
+        "source": "api",
+        "title": "VPN guide"
+      },
+      "distance": 1.0
+    }
+  ]
+}
+
+$ curl -sS -X DELETE http://127.0.0.1:18055/api/documents/invalid -w '
+%{http_code}'
+HTTP 422
+{
+  "detail": [
+    {
+      "type": "int_parsing",
+      "loc": [
+        "path",
+        "document_id"
+      ],
+      "msg": "Input should be a valid integer, unable to parse string as an integer",
+      "input": "invalid"
+    }
+  ]
+}
+
+All curl status, ownership, saved-record and raw-distance assertions passed.

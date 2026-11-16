@@ -132,6 +132,43 @@ the other management endpoints. The offline tests use temporary local Chroma
 and fixed embeddings; the recovery transcript is included in the backend gate
 output when run with `PYTEST_ADDOPTS=-rP`.
 
+## Delete a saved document
+
+`DELETE /api/documents/{document_id}` removes the document's owned Chroma chunks,
+then its saved database record. Success returns HTTP 200 with `id` and
+`message`. The record disappears from document lists and detail reads. Deleting
+the same ID again returns HTTP 404, as does re-indexing it. A missing record
+returns HTTP 404 without accessing Chroma; a non-integer ID returns HTTP 422.
+This API action has no dashboard button yet.
+
+```sh
+curl -sS -X DELETE http://localhost:8000/api/documents/1
+```
+
+Only chunks with matching numeric `document_id` metadata are removed. Other
+documents, including those with identical titles and sources, Slack chunks, and
+historical chunks without an owner are preserved. Legacy unowned chunks can
+therefore remain searchable after deletion. Rebuild them from their original
+sources to remove them safely. Documents that were saved but never indexed can
+also be deleted, including legacy records with invalid content.
+
+Failures return HTTP 503 with `detail.message` and `detail.document_id` without
+exposing provider or database details. Vector deletion runs first; on failure,
+the database record is retained for retry. If database removal then fails, the
+database transaction is rolled back, but removed chunks cannot be restored
+automatically. Retry the same DELETE to finish removal. A lost acknowledgement
+can mean a deletion completed even though the caller saw an error; a subsequent
+404 means the saved record is already absent. These two stores do not form an
+atomic transaction.
+
+Avoid overlapping deletion with indexing of the same document. Existing index
+requests can still write chunks after deletion; this API does not coordinate
+concurrent workers or implement tombstones. It does not remove content from Pi
+history or previous answers. Keep this destructive management endpoint behind
+trusted access controls, like the existing unauthenticated document endpoints.
+Deletion makes no embedding, model or Slack requests. Chroma must be available
+and the shared vector store must be configured, even for an unindexed record.
+
 ## Saved Slack threads
 
 Slack thread indexing uses a stable chunk ID built from the channel ID and

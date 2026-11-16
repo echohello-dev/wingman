@@ -90,6 +90,17 @@ class VectorStore:
         obsolete = sorted(set(previous["ids"]) - set(ids))
         if obsolete:
             self.vector_store.delete(ids=obsolete)
+
+    def delete_document(self, document_id: int):
+        """Remove only chunks explicitly owned by a saved document.
+
+        Deleting an empty set is safe to retry after a database failure.
+        Titles and sources cannot identify ownership of historical chunks.
+        """
+        self._ensure_initialized()
+        if self.vector_store is None:
+            raise RuntimeError("Vector store not initialized")
+        self.vector_store.delete(where={"document_id": document_id})
     
     def similarity_search(self, query: str, k: int = None, *,
                           channel_id: str = None) -> List[Dict[str, Any]]:
