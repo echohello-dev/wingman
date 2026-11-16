@@ -1,0 +1,69 @@
+Local fixture data only. SQLite, local Chroma and fixed embeddings; Slack API calls and Socket Mode blocked.
+Before dashboard deletion:
+$ curl -sS -i http://127.0.0.1:18057/api/documents?limit=20&offset=0
+HTTP/1.1 200 OK
+date: Mon, 16 Nov 2026 10:22:10 GMT
+server: uvicorn
+content-length: 445
+content-type: application/json
+
+{"items":[{"id":2,"title":"Office hours","source":"fixture docs","created_at":"2026-11-16T10:21:52.115878","content_preview":"The service desk is available from 9am to 5pm, Monday to Friday."},{"id":1,"title":"VPN access guide","source":"fixture docs","created_at":"2026-11-16T10:21:52.045466","content_preview":"Reset VPN access through the IT portal. Contact the service desk if access is still unavailable."}],"total":2,"limit":20,"offset":0}
+$ curl -sS -i http://127.0.0.1:18057/api/documents/1
+HTTP/1.1 200 OK
+date: Mon, 16 Nov 2026 10:22:10 GMT
+server: uvicorn
+content-length: 252
+content-type: application/json
+
+{"id":1,"title":"VPN access guide","content":"Reset VPN access through the IT portal. Contact the service desk if access is still unavailable.","source":"fixture docs","created_at":"2026-11-16T10:21:52.045466","updated_at":"2026-11-16T10:21:52.045472"}
+$ ['curl', '-sS', '-i', 'http://127.0.0.1:18057/api/retrieval/preview', '-H', 'Content-Type: application/json', '-d', '{"question":"How do I reset VPN?"}']
+HTTP/1.1 200 OK
+date: Mon, 16 Nov 2026 10:22:34 GMT
+server: uvicorn
+content-length: 494
+content-type: application/json
+
+{"question":"How do I reset VPN?","channel_id":null,"top_k":5,"max_distance":null,"items":[{"content":"The service desk is available from 9am to 5pm, Monday to Friday.","metadata":{"chunk":0,"document_id":2,"source":"fixture docs","title":"Office hours"},"distance":1521.0},{"content":"Reset VPN access through the IT portal. Contact the service desk if access is still unavailable.","metadata":{"chunk":0,"document_id":1,"source":"fixture docs","title":"VPN access guide"},"distance":5041.0}]}
+After dashboard confirmation with fixture fail-delete marker: DELETE returned 503 (see browser request log). Saved record remains readable.
+$ curl -sS -i http://127.0.0.1:18057/api/documents/1
+HTTP/1.1 200 OK
+date: Mon, 16 Nov 2026 10:23:24 GMT
+server: uvicorn
+content-length: 252
+content-type: application/json
+
+{"id":1,"title":"VPN access guide","content":"Reset VPN access through the IT portal. Contact the service desk if access is still unavailable.","source":"fixture docs","created_at":"2026-11-16T10:21:52.045466","updated_at":"2026-11-16T10:21:52.045472"}
+After retrying Confirm deletion in the dashboard (fixture outage removed):
+$ curl -sS -i http://127.0.0.1:18057/api/documents?limit=20&offset=0
+HTTP/1.1 200 OK
+date: Mon, 16 Nov 2026 10:23:44 GMT
+server: uvicorn
+content-length: 226
+content-type: application/json
+
+{"items":[{"id":2,"title":"Office hours","source":"fixture docs","created_at":"2026-11-16T10:21:52.115878","content_preview":"The service desk is available from 9am to 5pm, Monday to Friday."}],"total":1,"limit":20,"offset":0}
+$ curl -sS -i http://127.0.0.1:18057/api/documents/1
+HTTP/1.1 404 Not Found
+date: Mon, 16 Nov 2026 10:23:44 GMT
+server: uvicorn
+content-length: 31
+content-type: application/json
+
+{"detail":"Document not found"}
+$ curl -sS -i http://127.0.0.1:18057/api/documents/2
+HTTP/1.1 200 OK
+date: Mon, 16 Nov 2026 10:23:44 GMT
+server: uvicorn
+content-length: 216
+content-type: application/json
+
+{"id":2,"title":"Office hours","content":"The service desk is available from 9am to 5pm, Monday to Friday.","source":"fixture docs","created_at":"2026-11-16T10:21:52.115878","updated_at":"2026-11-16T10:21:52.115881"}
+$ ['curl', '-sS', '-i', 'http://127.0.0.1:18057/api/retrieval/preview', '-H', 'Content-Type: application/json', '-d', '{"question":"How do I reset VPN?"}']
+HTTP/1.1 200 OK
+date: Mon, 16 Nov 2026 10:23:44 GMT
+server: uvicorn
+content-length: 275
+content-type: application/json
+
+{"question":"How do I reset VPN?","channel_id":null,"top_k":5,"max_distance":null,"items":[{"content":"The service desk is available from 9am to 5pm, Monday to Friday.","metadata":{"chunk":0,"document_id":2,"source":"fixture docs","title":"Office hours"},"distance":1521.0}]}
+Assertions passed: only document 2 remains saved and retrievable. Raw distances use fixed fixture vectors and do not measure production relevance.

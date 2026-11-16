@@ -1,0 +1,9 @@
+### Result
+22. [GET] http://127.0.0.1:18057/api/documents?limit=20&offset=0 => [FAILED] net::ERR_ABORTED
+23. [GET] http://127.0.0.1:18057/api/documents?limit=20&offset=0 => [200] OK
+24. [GET] http://127.0.0.1:18057/api/documents/1 => [200] OK
+25. [DELETE] http://127.0.0.1:18057/api/documents/1 => [503] Service Unavailable
+26. [DELETE] http://127.0.0.1:18057/api/documents/1 => [200] OK
+27. [GET] http://127.0.0.1:18057/api/documents?limit=20&offset=0 => [200] OK
+
+Note: 21 static requests not shown, run with --static option to see them.

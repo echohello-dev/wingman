@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { getDocument, listDocuments, reindexDocument, type DocumentDetail, type DocumentListResponse } from '@/lib/api'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { deleteDocument, getDocument, listDocuments, reindexDocument, type DocumentDetail, type DocumentListResponse } from '@/lib/api'
 
 const PAGE_SIZE = 20
 const buttonClass = 'min-h-11 rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-40 disabled:cursor-not-allowed'
@@ -11,9 +11,18 @@ function formatDate(value?: string | null) {
   return new Date(value).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-function DocumentIndexAction({ documentId }: { documentId: number }) {
+function DocumentActions({ documentId, title, onDeleted }: { documentId: number; title: string; onDeleted: () => void }) {
   const [attempt, setAttempt] = useState(0)
   const [phase, setPhase] = useState<'idle' | 'pending' | 'success' | 'error'>('idle')
+  const [deletePhase, setDeletePhase] = useState<'idle' | 'confirm' | 'pending' | 'error'>('idle')
+  const [deleteAttempt, setDeleteAttempt] = useState(0)
+  const deleteButton = useRef<HTMLButtonElement>(null)
+  const previousDeletePhase = useRef(deletePhase)
+
+  useEffect(() => {
+    if (previousDeletePhase.current !== 'idle' && deletePhase === 'idle') deleteButton.current?.focus()
+    previousDeletePhase.current = deletePhase
+  }, [deletePhase])
 
   useEffect(() => {
     if (!attempt) return
@@ -25,12 +34,22 @@ function DocumentIndexAction({ documentId }: { documentId: number }) {
     return () => { cancelled = true; controller.abort() }
   }, [attempt, documentId])
 
+  useEffect(() => {
+    if (!deleteAttempt) return
+    let cancelled = false
+    const controller = new AbortController()
+    deleteDocument(documentId, controller.signal)
+      .then(() => { if (!cancelled) onDeleted() })
+      .catch(() => { if (!cancelled) setDeletePhase('error') })
+    return () => { cancelled = true; controller.abort() }
+  }, [deleteAttempt, documentId, onDeleted])
+
   return (
     <div className="mt-5 border-t border-blue-100 pt-4">
       <p className="text-sm text-gray-600 mb-3">Re-index this saved content for retrieval. This uses the configured embedding provider and may incur a cost.</p>
-      <button type="button" className={buttonClass} disabled={phase === 'pending'}
+      <button type="button" className={buttonClass} disabled={phase === 'pending' || deletePhase !== 'idle'}
         onClick={() => {
-          if (phase === 'pending') return
+          if (phase === 'pending' || deletePhase !== 'idle') return
           setPhase('pending')
           setAttempt((value) => value + 1)
         }}>
@@ -42,6 +61,32 @@ function DocumentIndexAction({ documentId }: { documentId: number }) {
       </p>
       {phase === 'error' && <p role="alert" className="text-sm text-red-700 mt-3">Could not index this document. Your saved content is unchanged. Check that the document is still available and the indexing service is running, then try again.</p>}
       <p className="text-xs text-gray-600 mt-3">Leaving this view stops waiting for the result. Indexing already started may still finish.</p>
+      <div className="mt-5 border-t border-blue-100 pt-4">
+        <button ref={deleteButton} type="button" className={`${buttonClass} text-red-700`}
+          disabled={phase === 'pending' || deletePhase !== 'idle'} onClick={() => setDeletePhase('confirm')}>
+          Delete document
+        </button>
+        {deletePhase !== 'idle' && (
+          <div role="group" aria-label="Confirm document deletion" className="mt-4 rounded-lg border border-red-200 bg-white p-4">
+            <p className="font-medium text-gray-800">Delete &ldquo;{title}&rdquo; (ID {documentId})?</p>
+            <p className="mt-2 text-sm text-gray-700">This permanently removes the saved document and its owned retrieval chunks. Historical chunks without an owner and previous answers may still contain this content.</p>
+            <p className="mt-2 text-sm text-gray-700">Wait for any indexing of this document in other views or by other users to finish before deleting.</p>
+            {deletePhase === 'error' && <p role="alert" className="mt-3 text-sm text-red-700">Could not confirm deletion. Some retrieval chunks may already be removed. Retry to finish, or cancel and refresh the document list to check its status.</p>}
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button type="button" className={buttonClass} disabled={deletePhase === 'pending'} autoFocus
+                onClick={() => setDeletePhase('idle')}>Cancel deletion</button>
+              <button type="button" className={`${buttonClass} text-red-700`} disabled={deletePhase === 'pending'}
+                onClick={() => {
+                  if (deletePhase === 'pending') return
+                  setDeletePhase('pending')
+                  setDeleteAttempt((value) => value + 1)
+                }}>{deletePhase === 'pending' ? 'Deleting...' : 'Confirm deletion'}</button>
+            </div>
+            {deletePhase === 'pending' && <p role="status" className="mt-3 text-sm text-gray-700">Deleting saved document...</p>}
+            <p className="mt-3 text-xs text-gray-600">Leaving this view stops waiting. Deletion already started may still finish; refresh the list to check.</p>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -54,6 +99,8 @@ export default function DocumentsPanel() {
   const [selection, setSelection] = useState<{ id: number } | null>(null)
   const [detail, setDetail] = useState<DocumentDetail | null>(null)
   const [detailError, setDetailError] = useState(false)
+  const [notice, setNotice] = useState('')
+  const heading = useRef<HTMLHeadingElement>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -74,14 +121,21 @@ export default function DocumentsPanel() {
     return () => { cancelled = true; controller.abort() }
   }, [selection])
 
-  function load(query: string, offset = 0) {
+  const load = useCallback((query: string, offset = 0) => {
     setList(null)
     setListError(false)
     setSelection(null)
     setDetail(null)
     setDetailError(false)
+    setNotice('')
     setRequest({ query, offset })
-  }
+  }, [])
+
+  const onDeleted = useCallback(() => {
+    load(request.query)
+    setNotice('Document is no longer saved.')
+    heading.current?.focus()
+  }, [load, request.query])
 
   function select(id: number) {
     setDetail(null)
@@ -91,9 +145,9 @@ export default function DocumentsPanel() {
 
   return (
     <section aria-labelledby="documents-title" className="max-w-3xl mx-auto bg-white rounded-xl shadow-lg p-6 sm:p-8">
-      <h2 id="documents-title" className="text-2xl font-semibold text-gray-800 mb-2">Knowledge Base Documents</h2>
+      <h2 ref={heading} tabIndex={-1} id="documents-title" className="text-2xl font-semibold text-gray-800 mb-2">Knowledge Base Documents</h2>
       <p className="text-gray-600 mb-6">
-        Saved documents for retrieval-augmented generation. Select one to read or re-index its content.
+        Saved documents for retrieval-augmented generation. Select one to read, re-index or delete it.
       </p>
       <form onSubmit={(event) => { event.preventDefault(); load(draft.trim()) }} className="mb-6">
         <label htmlFor="document-search" className="block font-medium text-gray-800 mb-2">Search documents</label>
@@ -107,6 +161,8 @@ export default function DocumentsPanel() {
             onClick={() => { setDraft(''); load('') }}>Clear search</button>
         </div>
       </form>
+
+      {notice && <p role="status" className="mb-4 text-sm text-gray-700">{notice}</p>}
 
       {listError ? (
         <div role="alert" className="p-4 bg-red-50 rounded-lg text-red-700">
@@ -161,7 +217,7 @@ export default function DocumentsPanel() {
               <h3 className="text-lg font-semibold text-gray-800 mb-1">{detail.title}</h3>
               <p className="text-sm text-gray-600 mb-3">{detail.source}{formatDate(detail.created_at) && ` - ${formatDate(detail.created_at)}`}</p>
               <p className="text-gray-700 whitespace-pre-wrap">{detail.content}</p>
-              <DocumentIndexAction key={detail.id} documentId={detail.id} />
+              <DocumentActions key={detail.id} documentId={detail.id} title={detail.title} onDeleted={onDeleted} />
             </div>
           )}
         </section>

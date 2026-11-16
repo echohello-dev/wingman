@@ -189,6 +189,15 @@ export async function reindexDocument(id: number, signal?: AbortSignal): Promise
   return response.json()
 }
 
+export async function deleteDocument(id: number, signal?: AbortSignal): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/api/documents/${id}`, {
+    method: 'DELETE',
+    signal,
+  })
+  // A retry can find the record already removed after a lost acknowledgement.
+  if (!response.ok && response.status !== 404) throw new Error(`API error: ${response.status}`)
+}
+
 export async function addDocument(doc: DocumentRequest): Promise<{ id: number; message: string }> {
   const response = await fetch(`${API_BASE_URL}/api/documents`, {
     method: 'POST',

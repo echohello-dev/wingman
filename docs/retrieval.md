@@ -139,7 +139,20 @@ then its saved database record. Success returns HTTP 200 with `id` and
 `message`. The record disappears from document lists and detail reads. Deleting
 the same ID again returns HTTP 404, as does re-indexing it. A missing record
 returns HTTP 404 without accessing Chroma; a non-integer ID returns HTTP 422.
-This API action has no dashboard button yet.
+In the dashboard, open **Documents**, select a saved document and choose
+**Delete document**. The confirmation names the document and its ID; **Cancel
+deletion** leaves it alone. **Confirm deletion** removes it and refreshes page
+one of the applied search. Unsubmitted search edits remain in the input.
+An already absent record (HTTP 404) also refreshes the results. A failed list
+refresh offers a list retry without sending another deletion request.
+
+Deletion and re-indexing cannot overlap within the current detail view. Other
+users and views are not coordinated, so wait for their indexing to finish
+before confirming deletion. Failures keep the confirmation open for retry or
+cancellation; some chunks may already have been removed. Leaving the view stops
+waiting and ignores late results, but deletion may still finish on the backend.
+Refresh the document list to check its status. This action does not send a Slack
+message or erase historical unowned chunks or previous answers.
 
 ```sh
 curl -sS -X DELETE http://localhost:8000/api/documents/1
