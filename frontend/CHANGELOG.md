@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.2.0](https://github.com/echohello-dev/wingman/compare/wingman-dashboard-v1.1.0...wingman-dashboard-v1.2.0) (2026-11-16)
+
+
+### Features
+
+* **api:** add paginated document list and detail endpoints ([#22](https://github.com/echohello-dev/wingman/issues/22)) ([8b76f58](https://github.com/echohello-dev/wingman/commit/8b76f58429670e2bc660796343ef2bcbf3a8d380))
+* **frontend:** browse saved conversations and turns ([#32](https://github.com/echohello-dev/wingman/issues/32)) ([7c75f13](https://github.com/echohello-dev/wingman/commit/7c75f139f39634d290325338ccbee0d0fd1afcbc))
+* **frontend:** delete saved documents with confirmation ([#58](https://github.com/echohello-dev/wingman/issues/58)) ([8efb707](https://github.com/echohello-dev/wingman/commit/8efb7077754f5ba9d5d6a1cc3f631452357bc941))
+* **frontend:** inspect retrieved chunks in the dashboard ([#44](https://github.com/echohello-dev/wingman/issues/44)) ([a6eac10](https://github.com/echohello-dev/wingman/commit/a6eac10ebf93e48e14c16598c3701dbeec89370c))
+* **frontend:** re-index saved documents from the dashboard ([#54](https://github.com/echohello-dev/wingman/issues/54)) ([4a2ce4b](https://github.com/echohello-dev/wingman/commit/4a2ce4b7f84114c9498741c1cb984ae612fcd1d2))
+* **frontend:** search and paginate saved documents ([#50](https://github.com/echohello-dev/wingman/issues/50)) ([b1e0b7b](https://github.com/echohello-dev/wingman/commit/b1e0b7bd1687dd80e834354a0451c5fd11f2c19a))
+* **frontend:** wire Documents tab to live document endpoints ([#24](https://github.com/echohello-dev/wingman/issues/24)) ([a5b283b](https://github.com/echohello-dev/wingman/commit/a5b283b13c5e07aed338d9e74a5f57e7cb20413e))
+
 ## [1.1.0](https://github.com/echohello-dev/wingman/compare/wingman-dashboard-v1.0.0...wingman-dashboard-v1.1.0) (2026-07-24)
 
 
