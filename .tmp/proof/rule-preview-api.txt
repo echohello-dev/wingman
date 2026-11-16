@@ -1,0 +1,137 @@
+Offline operator-rule preview with rule-preview-config.json.
+Slack API, Socket Mode, retrieval and Pi calls raise in the proof process.
+No chunks or distances apply: this endpoint only inspects loaded rules.
+
+$ curl --silent --show-error --include --max-time 10 http://127.0.0.1:18059/health
+HTTP/1.1 200 OK
+date: Mon, 16 Nov 2026 14:21:48 GMT
+server: uvicorn
+content-length: 20
+content-type: application/json
+{
+  "status": "healthy"
+}
+
+$ curl --silent --show-error --include --max-time 10 http://127.0.0.1:18059/api/rules/preview -H 'Content-Type: application/json' -d '{"question": "  How do I RESET VPN access?\n"}'
+HTTP/1.1 200 OK
+date: Mon, 16 Nov 2026 14:21:48 GMT
+server: uvicorn
+content-length: 223
+content-type: application/json
+{
+  "question": "How do I RESET VPN access?",
+  "match": {
+    "rule_id": "vpn-reset",
+    "match_type": "contains",
+    "matched_keyword": "reset vpn",
+    "priority": 10,
+    "response": "Use the IT portal at https://it.example.com/vpn to reset VPN access."
+  }
+}
+
+$ curl --silent --show-error --include --max-time 10 http://127.0.0.1:18059/api/rules/preview -H 'Content-Type: application/json' -d '{"question": "OFFICE HOURS"}'
+HTTP/1.1 200 OK
+date: Mon, 16 Nov 2026 14:21:48 GMT
+server: uvicorn
+content-length: 194
+content-type: application/json
+{
+  "question": "OFFICE HOURS",
+  "match": {
+    "rule_id": "office-hours",
+    "match_type": "exact",
+    "matched_keyword": "office hours",
+    "priority": 0,
+    "response": "The support desk runs 9am to 5pm, Monday to Friday."
+  }
+}
+
+$ curl --silent --show-error --include --max-time 10 http://127.0.0.1:18059/api/rules/preview -H 'Content-Type: application/json' -d '{"question": "Where is TICKET #4821?"}'
+HTTP/1.1 200 OK
+date: Mon, 16 Nov 2026 14:21:48 GMT
+server: uvicorn
+content-length: 189
+content-type: application/json
+{
+  "question": "Where is TICKET #4821?",
+  "match": {
+    "rule_id": "ticket",
+    "match_type": "regex",
+    "matched_keyword": "ticket #?\\d+",
+    "priority": 0,
+    "response": "Look up the ticket in the support portal."
+  }
+}
+
+$ curl --silent --show-error --include --max-time 10 http://127.0.0.1:18059/api/rules/preview -H 'Content-Type: application/json' -d '{"question": "How do I reset email?"}'
+HTTP/1.1 200 OK
+date: Mon, 16 Nov 2026 14:21:48 GMT
+server: uvicorn
+content-length: 49
+content-type: application/json
+{
+  "question": "How do I reset email?",
+  "match": null
+}
+
+$ curl --silent --show-error --include --max-time 10 http://127.0.0.1:18059/api/rules/preview -H 'Content-Type: application/json' -d '{"question": " \n\t "}'
+HTTP/1.1 422 Unprocessable Content
+date: Mon, 16 Nov 2026 14:21:48 GMT
+server: uvicorn
+content-length: 154
+content-type: application/json
+{
+  "detail": [
+    {
+      "type": "string_too_short",
+      "loc": [
+        "body",
+        "question"
+      ],
+      "msg": "String should have at least 1 character",
+      "input": " \n\t ",
+      "ctx": {
+        "min_length": 1
+      }
+    }
+  ]
+}
+
+$ curl --silent --show-error --include --max-time 10 http://127.0.0.1:18059/api/rules/preview -H 'Content-Type: application/json' -d '{"question": 123}'
+HTTP/1.1 422 Unprocessable Content
+date: Mon, 16 Nov 2026 14:21:48 GMT
+server: uvicorn
+content-length: 112
+content-type: application/json
+{
+  "detail": [
+    {
+      "type": "string_type",
+      "loc": [
+        "body",
+        "question"
+      ],
+      "msg": "Input should be a valid string",
+      "input": 123
+    }
+  ]
+}
+
+$ curl --silent --show-error --include --max-time 10 http://127.0.0.1:18059/api/ask -H 'Content-Type: application/json' -d '{"question": "How do I RESET VPN access?"}'
+HTTP/1.1 200 OK
+date: Mon, 16 Nov 2026 14:21:48 GMT
+server: uvicorn
+content-length: 162
+content-type: application/json
+{
+  "answer": "Use the IT portal at https://it.example.com/vpn to reset VPN access.",
+  "sources": [
+    {
+      "source": "operator_rule",
+      "rule_id": "vpn-reset"
+    }
+  ],
+  "confidence": "high"
+}
+
+All response assertions passed. Preview and API answer select the same rule.

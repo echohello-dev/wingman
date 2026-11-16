@@ -1,0 +1,69 @@
+[test-frontend] $ bun run test
+$ bun test --preload ./tests/setup.ts
+bun test v1.3.5 (1e86cebd)
+
+tests/documents.test.tsx:
+(pass) documents load on opening the tab, search only on submit, and retain the applied query while paging [176.30ms]
+(pass) document client encodes literal search text, keeps source filters, and omits blank queries [0.17ms]
+(pass) documents show loading, retry the submitted query after a list error, and distinguish empty searches [15.00ms]
+(pass) documents render saved content as text and retry detail failures without losing results [22.97ms]
+(pass) documents ignore stale successful and failed list responses after a newer search [9.05ms]
+(pass) documents ignore late details after another selection, a page change, and clearing a search [35.51ms]
+(pass) documents abort requests on leaving the tab and ignore late responses when reopened [10.11ms]
+
+tests/document-deletion.test.tsx:
+(pass) deletion requires confirmation of the selected document and cancellation sends no mutation [18.01ms]
+(pass) confirmed deletion handles HTTP %s by refreshing page one of the applied search [40.65ms]
+(pass) confirmed deletion handles HTTP %s by refreshing page one of the applied search [37.14ms]
+(pass) deletion reports an uncertain outcome after 503 and retries the same ID [22.40ms]
+(pass) deletion reports an uncertain outcome after 403 and retries the same ID [24.72ms]
+(pass) deletion reports an uncertain outcome after network and retries the same ID [25.24ms]
+(pass) a deletion failure can be cancelled and re-indexing blocks deletion until it finishes [23.87ms]
+(pass) a failed list refresh after deletion offers a list retry without repeating DELETE [19.81ms]
+(pass) deletion ignores late success after a selection change [21.66ms]
+(pass) deletion ignores late failure after a selection change [22.85ms]
+(pass) deletion ignores late success after a search change [25.52ms]
+(pass) deletion ignores late failure after a search change [31.68ms]
+(pass) deletion ignores late success after a page change [25.23ms]
+(pass) deletion ignores late failure after a page change [21.51ms]
+(pass) deletion ignores late success after a tab change [23.88ms]
+(pass) deletion ignores late failure after a tab change [23.96ms]
+
+tests/document-indexing.test.tsx:
+(pass) re-indexing requires an explicit click, posts the saved ID once while pending, and keeps the content visible [15.98ms]
+(pass) re-indexing reports a safe failure for 404 and retries the same saved document [18.27ms]
+(pass) re-indexing reports a safe failure for 422 and retries the same saved document [22.28ms]
+(pass) re-indexing reports a safe failure for 503 and retries the same saved document [32.95ms]
+(pass) re-indexing reports a safe failure for network and retries the same saved document [21.25ms]
+(pass) re-indexing ignores a late success after a selection change [25.17ms]
+(pass) re-indexing ignores a late failure after a selection change [24.07ms]
+(pass) re-indexing ignores a late success after a search change [31.50ms]
+(pass) re-indexing ignores a late failure after a search change [28.36ms]
+(pass) re-indexing ignores a late success after a page change [27.22ms]
+(pass) re-indexing ignores a late failure after a page change [26.08ms]
+(pass) re-indexing ignores a late success after a tab change [30.83ms]
+(pass) re-indexing ignores a late failure after a tab change [30.03ms]
+
+tests/retrieval.test.tsx:
+(pass) retrieval waits for a non-blank question and submits trimmed optional scope [12.25ms]
+(pass) retrieval omits blank scope, preserves rank and raw distances, and shows an unset cutoff [9.16ms]
+(pass) retrieval disables inputs and duplicate submissions while loading [8.03ms]
+(pass) retrieval shows an empty result and a zero distance cutoff [5.85ms]
+(pass) retrieval replaces a failed request with a successful retry [21.22ms]
+(pass) retrieval clears old results when the question or channel changes [24.66ms]
+(pass) retrieval aborts on leaving the tab and ignores late responses after reopening [13.91ms]
+(pass) retrieval renders chunk and metadata markup as text [14.73ms]
+
+tests/conversations.test.tsx:
+(pass) loads only on opening the tab and paginates summaries and chronological turns independently [135.73ms]
+(pass) shows loading, an empty page and a list error with a working retry [8.90ms]
+(pass) retries missing conversation details without discarding the list [22.70ms]
+(pass) ignores stale detail responses after selecting another conversation [20.42ms]
+(pass) ignores stale errors after leaving and reopening the tab [7.24ms]
+(pass) renders stored markup as text and supports missing metadata [8.04ms]
+(pass) encodes conversation IDs in detail request paths [1.58ms]
+
+ 51 pass
+ 0 fail
+ 370 expect() calls
+Ran 51 tests across 5 files. [1.78s]

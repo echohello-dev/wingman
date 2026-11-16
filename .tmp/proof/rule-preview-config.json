@@ -1,0 +1,33 @@
+[
+  {
+    "id": "vpn-low",
+    "keywords": ["reset vpn"],
+    "response": "A lower priority answer that should not win.",
+    "priority": 1
+  },
+  {
+    "id": "vpn-disabled",
+    "keywords": ["reset vpn"],
+    "response": "A disabled answer that should not win.",
+    "priority": 100,
+    "enabled": false
+  },
+  {
+    "id": "vpn-reset",
+    "keywords": ["reset vpn", "vpn password"],
+    "response": "Use the IT portal at https://it.example.com/vpn to reset VPN access.",
+    "priority": 10
+  },
+  {
+    "id": "office-hours",
+    "keywords": ["office hours"],
+    "match_type": "exact",
+    "response": "The support desk runs 9am to 5pm, Monday to Friday."
+  },
+  {
+    "id": "ticket",
+    "keywords": ["ticket #?\\d+"],
+    "match_type": "regex",
+    "response": "Look up the ticket in the support portal."
+  }
+]

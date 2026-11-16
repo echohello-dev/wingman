@@ -6,7 +6,9 @@ or a generated answer. Use them when the generic answer is wrong or stale
 and the correct wording is known.
 
 Rules are checked on the `/api/ask` path through `RAGEngine.generate_response`
-in [backend/app/rag.py](../backend/app/rag.py). The matcher lives in
+and on the Slack submit path through `RAGEngine.submit_slack` in
+[backend/app/rag.py](../backend/app/rag.py). Slack's pinned answers use the Pi
+outbox for delivery without model generation. The matcher lives in
 [backend/app/rules.py](../backend/app/rules.py).
 
 ## Configure
@@ -64,9 +66,53 @@ match type, a non-integer priority or a bad regex is logged and skipped.
 Invalid JSON, a missing file or a non-list config loads as no rules. Bad
 config never stops the backend from starting.
 
+## Preview the winning rule
+
+`POST /api/rules/preview` uses the backend's loaded matcher to show which rule
+would answer a question. It does not retrieve chunks, generate an answer,
+submit a Pi job, write to the database or send a Slack message. An unmatched
+question returns a null match without falling back to generation.
+
+```sh
+curl -sS http://localhost:8000/api/rules/preview \
+  -H 'Content-Type: application/json' \
+  -d '{"question":"How do I RESET VPN access?"}'
+```
+
+With the example rules above, the response is:
+
+```json
+{
+  "question": "How do I RESET VPN access?",
+  "match": {
+    "rule_id": "vpn-reset",
+    "match_type": "contains",
+    "matched_keyword": "reset vpn",
+    "priority": 10,
+    "response": "Use the IT portal at https://it.example.com/vpn to reset VPN access."
+  }
+}
+```
+
+The winner follows the existing priority, config-order and enabled-rule policy.
+The response preserves the approved answer's formatting. Surrounding question
+whitespace is trimmed; missing, blank and non-string questions return HTTP 422
+before matching. No match returns HTTP 200 with `"match": null`. Matcher failures
+return HTTP 503 with a generic detail rather than configuration internals.
+
+Rules are loaded once per process. Preview does not reload a file or validate
+unsaved configuration. Restart both backend and bot after changing the rule
+configuration; a backend preview cannot confirm what a separately running bot
+has loaded. For Slack mentions, preview the question after removing the bot
+mention, as the handler does before matching.
+
+Like the other management endpoints, preview has no built-in authentication.
+Keep it behind trusted access controls: it returns the full approved answer
+and the pattern that matched, which can contain internal information. It
+does not evaluate source permissions or whether the answer is still correct.
+
 ## Current limits
 
-Rules apply to the API ask path in this slice. Slack delivery still goes
-through the Pi Durable job flow, so wiring rules into the Slack handlers is
-a follow-up. Combining a rule with fetched source data before summarising
-is also still open under the parent issue.
+Combining a rule with fetched source data before summarising remains open
+under the parent issue. Preview inspects the current deterministic winner;
+it does not list shadowed rules or change matching policy.
